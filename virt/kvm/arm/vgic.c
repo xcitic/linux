@@ -1868,6 +1868,17 @@ static int vgic_vcpu_init_maps(struct kvm_vcpu *vcpu, int nr_irqs)
 	return 0;
 }
 
+/**
+ * kvm_vgic_get_max_vcpus - Get the maximum number of VCPUs allowed by HW
+ *
+ * The host's GIC naturally limits the maximum amount of VCPUs a guest
+ * can use.
+ */
+int kvm_vgic_get_max_vcpus(void)
+{
+	return vgic->max_gic_vcpus;
+}
+
 void kvm_vgic_destroy(struct kvm *kvm)
 {
 	struct vgic_dist *dist = &kvm->arch.vgic;
@@ -2063,6 +2074,8 @@ static int vgic_v2_init_emulation(struct kvm *kvm)
 	dist->vm_ops.init_model = vgic_v2_init_model;
 	dist->vm_ops.map_resources = vgic_v2_map_resources;
 
+	kvm->arch.max_vcpus = VGIC_V2_MAX_CPUS;
+
 	return 0;
 }
 
@@ -2077,6 +2090,15 @@ static int init_vgic_model(struct kvm *kvm, int type)
 	default:
 		ret = -ENODEV;
 		break;
+	}
+
+	if (ret)
+		return ret;
+
+	if (atomic_read(&kvm->online_vcpus) > kvm->arch.max_vcpus) {
+		pr_warn_ratelimited("VGIC model only supports up to %d vCPUs\n",
+			kvm->arch.max_vcpus);
+		ret = -EINVAL;
 	}
 
 	return ret;
