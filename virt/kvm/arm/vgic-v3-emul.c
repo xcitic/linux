@@ -1009,6 +1009,9 @@ static int vgic_v3_has_attr(struct kvm_device *dev,
 		case KVM_VGIC_V2_ADDR_TYPE_DIST:
 		case KVM_VGIC_V2_ADDR_TYPE_CPU:
 			return -ENXIO;
+		case KVM_VGIC_V3_ADDR_TYPE_DIST:
+		case KVM_VGIC_V3_ADDR_TYPE_REDIST:
+			return 0;
 		}
 		break;
 	case KVM_DEV_ARM_VGIC_GRP_DIST_REGS:
