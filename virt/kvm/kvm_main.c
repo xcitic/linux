@@ -2341,13 +2341,24 @@ static struct kvm_device_ops *kvm_device_ops_table[KVM_DEV_TYPE_MAX] = {
 #endif
 };
 
-int kvm_register_device_ops(struct kvm_device_ops *ops, u32 type)
+int kvm_check_device_type(u32 type)
 {
 	if (type >= ARRAY_SIZE(kvm_device_ops_table))
-		return -ENOSPC;
+		return -EINVAL;
 
-	if (kvm_device_ops_table[type] != NULL)
-		return -EEXIST;
+	if (kvm_device_ops_table[type] == NULL)
+		return -ENODEV;
+
+	return -EEXIST;
+}
+
+int kvm_register_device_ops(struct kvm_device_ops *ops, u32 type)
+{
+	int ret;
+
+	ret = kvm_check_device_type(type);
+	if (ret != -ENODEV)
+		return ret;
 
 	kvm_device_ops_table[type] = ops;
 	return 0;
@@ -2364,18 +2375,16 @@ static int kvm_ioctl_create_device(struct kvm *kvm,
 {
 	struct kvm_device_ops *ops = NULL;
 	struct kvm_device *dev;
-	bool test = cd->flags & KVM_CREATE_DEVICE_TEST;
 	int ret;
 
-	if (cd->type >= ARRAY_SIZE(kvm_device_ops_table))
-		return -ENODEV;
+	ret = kvm_check_device_type(cd->type);
+	if (ret != -EEXIST)
+		return ret;
+
+	if (cd->flags & KVM_CREATE_DEVICE_TEST)
+		return 0;
 
 	ops = kvm_device_ops_table[cd->type];
-	if (ops == NULL)
-		return -ENODEV;
-
-	if (test)
-		return 0;
 
 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
 	if (!dev)
