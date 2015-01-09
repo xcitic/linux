@@ -142,6 +142,14 @@ static void vgic_v2_enable(struct kvm_vcpu *vcpu)
 	vcpu->arch.vgic_cpu.vgic_v2.vgic_hcr = GICH_HCR_EN;
 }
 
+static bool vgic_v2_can_emulate(u32 type)
+{
+	if (type == KVM_DEV_TYPE_ARM_VGIC_V2)
+		return true;
+
+	return false;
+}
+
 static const struct vgic_ops vgic_v2_ops = {
 	.get_lr			= vgic_v2_get_lr,
 	.set_lr			= vgic_v2_set_lr,
@@ -154,6 +162,7 @@ static const struct vgic_ops vgic_v2_ops = {
 	.get_vmcr		= vgic_v2_get_vmcr,
 	.set_vmcr		= vgic_v2_set_vmcr,
 	.enable			= vgic_v2_enable,
+	.can_emulate		= vgic_v2_can_emulate,
 };
 
 static struct vgic_params vgic_v2_params;

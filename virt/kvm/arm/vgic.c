@@ -1578,9 +1578,10 @@ int kvm_vgic_create(struct kvm *kvm, u32 type)
 		goto out;
 	}
 
-	ret = kvm_check_device_type(type);
-	if (ret != -EEXIST)
+	if (!vgic_ops->can_emulate(type)) {
+		ret = -ENODEV;
 		goto out;
+	}
 
 	/*
 	 * Any time a vcpu is run, vcpu_load is called which tries to grab the
