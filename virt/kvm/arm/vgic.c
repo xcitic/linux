@@ -1557,11 +1557,8 @@ static int init_vgic_model(struct kvm *kvm, int type)
 	if (ret)
 		return ret;
 
-	if (atomic_read(&kvm->online_vcpus) > kvm->arch.max_vcpus) {
-		pr_warn_ratelimited("VGIC model only supports up to %d vCPUs\n",
-			kvm->arch.max_vcpus);
+	if (atomic_read(&kvm->online_vcpus) > kvm->arch.max_vcpus)
 		ret = -EINVAL;
-	}
 
 	return ret;
 }
