@@ -778,7 +778,8 @@ static int vgic_v3_map_resources(struct kvm *kvm,
 	if (IS_VGIC_ADDR_UNDEF(dist->vgic_dist_base) ||
 	    IS_VGIC_ADDR_UNDEF(dist->vgic_redist_base)) {
 		kvm_err("Need to set vgic distributor addresses first\n");
-		return -ENXIO;
+		ret = -ENXIO;
+		goto out;
 	}
 
 	/*
