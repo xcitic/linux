@@ -550,7 +550,7 @@ static int vgic_v2_init_model(struct kvm *kvm)
 	return 0;
 }
 
-int vgic_v2_init_emulation(struct kvm *kvm)
+void vgic_v2_init_emulation(struct kvm *kvm)
 {
 	struct vgic_dist *dist = &kvm->arch.vgic;
 
@@ -561,8 +561,6 @@ int vgic_v2_init_emulation(struct kvm *kvm)
 	dist->vm_ops.map_resources = vgic_v2_map_resources;
 
 	kvm->arch.max_vcpus = VGIC_V2_MAX_CPUS;
-
-	return 0;
 }
 
 static bool handle_cpu_mmio_misc(struct kvm_vcpu *vcpu,

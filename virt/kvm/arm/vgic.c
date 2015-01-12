@@ -1538,11 +1538,9 @@ out:
 
 static int init_vgic_model(struct kvm *kvm, int type)
 {
-	int ret;
-
 	switch (type) {
 	case KVM_DEV_TYPE_ARM_VGIC_V2:
-		ret = vgic_v2_init_emulation(kvm);
+		vgic_v2_init_emulation(kvm);
 		break;
 #ifdef CONFIG_ARM_GIC_V3
 	case KVM_DEV_TYPE_ARM_VGIC_V3:
@@ -1550,17 +1548,13 @@ static int init_vgic_model(struct kvm *kvm, int type)
 		break;
 #endif
 	default:
-		ret = -ENODEV;
-		break;
+		return -ENODEV;
 	}
 
-	if (ret)
-		return ret;
-
 	if (atomic_read(&kvm->online_vcpus) > kvm->arch.max_vcpus)
-		ret = -EINVAL;
+		return -EINVAL;
 
-	return ret;
+	return 0;
 }
 
 int kvm_vgic_create(struct kvm *kvm, u32 type)

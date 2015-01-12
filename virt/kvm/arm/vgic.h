@@ -117,7 +117,7 @@ int vgic_set_common_attr(struct kvm_device *dev, struct kvm_device_attr *attr);
 int vgic_get_common_attr(struct kvm_device *dev, struct kvm_device_attr *attr);
 
 int vgic_init(struct kvm *kvm);
-int vgic_v2_init_emulation(struct kvm *kvm);
+void vgic_v2_init_emulation(struct kvm *kvm);
 int vgic_v3_init_emulation(struct kvm *kvm);
 
 #endif
