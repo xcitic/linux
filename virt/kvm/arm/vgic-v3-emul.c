@@ -575,7 +575,7 @@ static const struct kvm_mmio_range vgic_redist_sgi_ranges[] = {
 		.base		= GICR_IGROUPR0,
 		.len		= 0x04,
 		.bits_per_irq	= 1,
-		.handle_mmio	= handle_mmio_raz_wi,
+		.handle_mmio	= handle_mmio_rao_wi,
 	},
 	{
 		.base		= GICR_ISENABLER0,
