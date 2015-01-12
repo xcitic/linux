@@ -829,7 +829,7 @@ static void vgic_v3_add_sgi_source(struct kvm_vcpu *vcpu, int irq, int source)
 {
 }
 
-int vgic_v3_init_emulation(struct kvm *kvm)
+void vgic_v3_init_emulation(struct kvm *kvm)
 {
 	struct vgic_dist *dist = &kvm->arch.vgic;
 
@@ -840,8 +840,6 @@ int vgic_v3_init_emulation(struct kvm *kvm)
 	dist->vm_ops.map_resources = vgic_v3_map_resources;
 
 	kvm->arch.max_vcpus = KVM_MAX_VCPUS;
-
-	return 0;
 }
 
 /*
