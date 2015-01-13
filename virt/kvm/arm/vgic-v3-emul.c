@@ -783,12 +783,11 @@ static int vgic_v3_map_resources(struct kvm *kvm,
 	}
 
 	/*
-	 * Initialize the vgic if this hasn't already been done on demand by
-	 * accessing the vgic state from userspace.
+	 * For a VGICv3 we require the userland to explicitly initialize
+	 * the VGIC before we need to use it.
 	 */
-	ret = vgic_init(kvm);
-	if (ret) {
-		kvm_err("Unable to allocate maps\n");
+	if (!vgic_initialized(kvm)) {
+		ret = -EBUSY;
 		goto out;
 	}
 
