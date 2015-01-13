@@ -1339,6 +1339,16 @@ int kvm_vgic_inject_irq(struct kvm *kvm, int cpuid, unsigned int irq_num,
 	int vcpu_id;
 
 	if (unlikely(!vgic_initialized(kvm))) {
+		/*
+		 * We only provide the automatic initialization of the VGIC
+		 * for the legacy case of a GICv2. Any other type must
+		 * be explicitly initialized once setup with the respective
+		 * KVM device call.
+		 */
+		if (kvm->arch.vgic.vgic_model != KVM_DEV_TYPE_ARM_VGIC_V2) {
+			ret = -EBUSY;
+			goto out;
+		}
 		mutex_lock(&kvm->lock);
 		ret = vgic_init(kvm);
 		mutex_unlock(&kvm->lock);
