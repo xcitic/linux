@@ -1560,7 +1560,7 @@ static int init_vgic_model(struct kvm *kvm, int type)
 	}
 
 	if (atomic_read(&kvm->online_vcpus) > kvm->arch.max_vcpus)
-		return -EINVAL;
+		return -E2BIG;
 
 	return 0;
 }
