@@ -77,8 +77,6 @@
 
 #include "vgic.h"
 
-#define GICC_ARCH_VERSION_V2	0x2
-
 static void vgic_retire_disabled_irqs(struct kvm_vcpu *vcpu);
 static void vgic_retire_lr(int lr_nr, int irq, struct kvm_vcpu *vcpu);
 static struct vgic_lr vgic_get_lr(const struct kvm_vcpu *vcpu, int lr);
