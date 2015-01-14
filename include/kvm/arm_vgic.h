@@ -120,7 +120,6 @@ struct vgic_ops {
 	void	(*get_vmcr)(struct kvm_vcpu *vcpu, struct vgic_vmcr *vmcr);
 	void	(*set_vmcr)(struct kvm_vcpu *vcpu, struct vgic_vmcr *vmcr);
 	void	(*enable)(struct kvm_vcpu *vcpu);
-	bool	(*can_emulate)(u32 type);
 };
 
 struct vgic_params {

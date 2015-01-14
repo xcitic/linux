@@ -186,19 +186,6 @@ static void vgic_v3_enable(struct kvm_vcpu *vcpu)
 	vgic_v3->vgic_hcr = ICH_HCR_EN;
 }
 
-static struct vgic_params vgic_v3_params;
-
-static bool vgic_v3_can_emulate(u32 type)
-{
-	switch (type) {
-	case KVM_DEV_TYPE_ARM_VGIC_V3:
-		return true;
-	case KVM_DEV_TYPE_ARM_VGIC_V2:
-		return vgic_v3_params.vcpu_base != 0;
-	}
-	return false;
-}
-
 static const struct vgic_ops vgic_v3_ops = {
 	.get_lr			= vgic_v3_get_lr,
 	.set_lr			= vgic_v3_set_lr,
@@ -211,8 +198,9 @@ static const struct vgic_ops vgic_v3_ops = {
 	.get_vmcr		= vgic_v3_get_vmcr,
 	.set_vmcr		= vgic_v3_set_vmcr,
 	.enable			= vgic_v3_enable,
-	.can_emulate		= vgic_v3_can_emulate,
 };
+
+static struct vgic_params vgic_v3_params;
 
 /**
  * vgic_v3_probe - probe for a GICv3 compatible interrupt controller in DT
