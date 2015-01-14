@@ -235,6 +235,7 @@ int vgic_v3_probe(struct device_node *vgic_node,
 	 * maximum of 16 list registers. Just ignore bit 4...
 	 */
 	vgic->nr_lr = (ich_vtr_el2 & 0xf) + 1;
+	vgic->can_emulate_gicv2 = false;
 
 	if (of_property_read_u32(vgic_node, "#redistributor-regions", &gicv_idx))
 		gicv_idx = 1;
@@ -254,6 +255,7 @@ int vgic_v3_probe(struct device_node *vgic_node,
 		vgic->vcpu_base = 0;
 	} else {
 		vgic->vcpu_base = vcpu_res.start;
+		vgic->can_emulate_gicv2 = true;
 		kvm_register_device_ops(&kvm_arm_vgic_v2_ops,
 					KVM_DEV_TYPE_ARM_VGIC_V2);
 	}
