@@ -852,6 +852,7 @@ struct kvm_ppc_smmu_info {
 #define KVM_CAP_S390_RI 124
 #define KVM_CAP_ARM_PMU_V3 125
 #define KVM_CAP_VCPU_ATTRIBUTES 126
+#define KVM_CAP_MSI_DEVID 127
 
 #ifdef KVM_CAP_IRQ_ROUTING
 
@@ -1010,12 +1011,14 @@ struct kvm_one_reg {
 	__u64 addr;
 };
 
+#define KVM_MSI_VALID_DEVID	(1U << 0)
 struct kvm_msi {
 	__u32 address_lo;
 	__u32 address_hi;
 	__u32 data;
 	__u32 flags;
-	__u8  pad[16];
+	__u32 devid;
+	__u8  pad[12];
 };
 
 struct kvm_arm_device_addr {
