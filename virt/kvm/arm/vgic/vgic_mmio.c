@@ -697,16 +697,26 @@ static int vgic_mmio_read_v3r_misc(struct kvm_vcpu *vcpu,
 				   struct kvm_io_device *this,
 				   gpa_t addr, int len, void *val)
 {
-	/* TODO: implement for ITS support */
-	return vgic_mmio_read_raz(vcpu, this, addr, len, val);
+	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
+	u32 reg = dist->lpis_enabled ? GICR_CTLR_ENABLE_LPIS : 0;
+
+	write_mask32(reg, addr & 3, len, val);
+	return 0;
 }
 
 static int vgic_mmio_write_v3r_misc(struct kvm_vcpu *vcpu,
 				    struct kvm_io_device *this,
 				    gpa_t addr, int len, const void *val)
 {
-	/* TODO: implement for ITS support */
-	return vgic_mmio_write_wi(vcpu, this, addr, len, val);
+	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
+	u32 reg = mask32(!!dist->lpis_enabled, addr & 3, len, val);
+
+	if (vgic_has_its(vcpu->kvm) && !dist->lpis_enabled &&
+	    (reg & GICR_CTLR_ENABLE_LPIS)) {
+		/* Eventually do something */
+	}
+
+	return 0;
 }
 
 static int vgic_mmio_read_v3r_iidr(struct kvm_vcpu *vcpu,

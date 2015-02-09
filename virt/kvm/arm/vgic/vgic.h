@@ -62,6 +62,9 @@ void vgic_v3_enable(struct kvm_vcpu *vcpu);
 int vgic_v3_probe(struct device_node *vgic_node);
 int vgic_v3_map_resources(struct kvm *kvm);
 int vgic_register_redist_regions(struct kvm *kvm, gpa_t dist_base_address);
+
+int vits_init(struct kvm *kvm);
+void vgic_enable_lpis(struct kvm_vcpu *vcpu);
 #else
 static inline void vgic_v3_irq_change_affinity(struct kvm *kvm, u32 intid,
 					       u64 mpidr)
@@ -126,6 +129,16 @@ static inline int vgic_register_redist_regions(struct kvm *kvm,
 {
 	return -ENODEV;
 }
+
+int vits_init(struct kvm *kvm)
+{
+	return 0;
+}
+
+static inline void vgic_enable_lpis(struct kvm_vcpu *vcpu)
+{
+	return;
+}
 #endif
 
 void vgic_set_vmcr(struct kvm_vcpu *vcpu, struct vgic_vmcr *vmcr);
@@ -133,6 +146,7 @@ void vgic_get_vmcr(struct kvm_vcpu *vcpu, struct vgic_vmcr *vmcr);
 
 int vgic_lazy_init(struct kvm *kvm);
 int vgic_init(struct kvm *kvm);
+int vits_init(struct kvm *kvm);
 void kvm_register_vgic_device(unsigned long type);
 
 #endif
