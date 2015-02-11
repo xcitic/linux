@@ -164,6 +164,9 @@ struct vgic_dist {
 		phys_addr_t		vgic_redist_base;
 	};
 
+	/* The base address of the ITS control register frame */
+	phys_addr_t		vgic_its_base;
+
 	/* distributor enabled */
 	u32			enabled;
 
@@ -260,5 +263,6 @@ static inline int kvm_vgic_get_max_vcpus(void)
 	return kvm_vgic_global_state.max_gic_vcpus;
 }
 
+bool vgic_has_its(struct kvm *kvm);
 
 #endif /* __ASM_ARM_KVM_VGIC_VGIC_H */
