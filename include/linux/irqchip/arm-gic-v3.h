@@ -254,7 +254,10 @@
  */
 #define GITS_CMD_MAPD			0x08
 #define GITS_CMD_MAPC			0x09
-#define GITS_CMD_MAPVI			0x0a
+#define GITS_CMD_MAPTI			0x0a
+/* older GIC documentation used MAPVI for this command */
+#define GITS_CMD_MAPVI			GITS_CMD_MAPTI
+#define GITS_CMD_MAPI			0x0b
 #define GITS_CMD_MOVI			0x01
 #define GITS_CMD_DISCARD		0x0f
 #define GITS_CMD_INV			0x0c
@@ -263,6 +266,20 @@
 #define GITS_CMD_INT			0x03
 #define GITS_CMD_CLEAR			0x04
 #define GITS_CMD_SYNC			0x05
+
+/*
+ * ITS error numbers
+ */
+#define E_ITS_MOVI_UNMAPPED_INTERRUPT           0x010107
+#define E_ITS_MOVI_UNMAPPED_COLLECTION          0x010109
+#define E_ITS_CLEAR_UNMAPPED_INTERRUPT          0x010507
+#define E_ITS_MAPC_PROCNUM_OOR                  0x010902
+#define E_ITS_MAPTI_UNMAPPED_DEVICE             0x010a04
+#define E_ITS_MAPTI_PHYSICALID_OOR              0x010a06
+#define E_ITS_INV_UNMAPPED_INTERRUPT            0x010c07
+#define E_ITS_INVALL_UNMAPPED_COLLECTION        0x010d09
+#define E_ITS_MOVALL_PROCNUM_OOR                0x010e01
+#define E_ITS_DISCARD_UNMAPPED_INTERRUPT        0x010f07
 
 /*
  * CPU interface registers
