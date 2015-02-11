@@ -22,6 +22,7 @@
 #include <linux/spinlock.h>
 #include <linux/types.h>
 #include <kvm/iodev.h>
+#include <linux/list.h>
 
 /******************************************************************
  * TODO: Consider removing these, added for compilation purposes.
@@ -144,6 +145,8 @@ struct vgic_its {
 	u64			cbaser;
 	int			creadr;
 	int			cwriter;
+	struct list_head	device_list;
+	struct list_head	collection_list;
 };
 
 struct vgic_dist {

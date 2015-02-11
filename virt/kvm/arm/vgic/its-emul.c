@@ -21,6 +21,7 @@
 #include <linux/kvm.h>
 #include <linux/kvm_host.h>
 #include <linux/interrupt.h>
+#include <linux/list.h>
 
 #include <linux/irqchip/arm-gic-v3.h>
 
@@ -30,6 +31,34 @@
 
 #include "vgic.h"
 #include "vgic_mmio.h"
+
+struct its_device {
+	struct list_head dev_list;
+
+	/* the head for the list of ITTEs */
+	struct list_head itt;
+	u32 device_id;
+};
+
+#define COLLECTION_NOT_MAPPED ((u32)-1)
+
+struct its_collection {
+	struct list_head coll_list;
+
+	u32 collection_id;
+	u32 target_addr;
+};
+
+#define its_is_collection_mapped(coll) ((coll) && \
+				((coll)->target_addr != COLLECTION_NOT_MAPPED))
+
+struct its_itte {
+	struct list_head itte_list;
+
+	struct its_collection *collection;
+	u32 lpi;
+	u32 event_id;
+};
 
 #define BASER_BASE_ADDRESS(x) ((x) & 0xfffffffff000ULL)
 
@@ -135,6 +164,12 @@ static int vgic_mmio_read_its_idregs(struct kvm_vcpu *vcpu,
 	write_mask32(reg, addr & 3, len, val);
 
 	return 0;
+}
+
+static void its_free_itte(struct its_itte *itte)
+{
+	list_del(&itte->itte_list);
+	kfree(itte);
 }
 
 /*
@@ -309,6 +344,9 @@ int vits_init(struct kvm *kvm)
 
 	spin_lock_init(&its->lock);
 
+	INIT_LIST_HEAD(&its->device_list);
+	INIT_LIST_HEAD(&its->collection_list);
+
 	regions = kmalloc_array(ARRAY_SIZE(its_registers),
 				sizeof(struct vgic_io_device), GFP_KERNEL);
 
@@ -331,11 +369,39 @@ void vits_destroy(struct kvm *kvm)
 {
 	struct vgic_dist *dist = &kvm->arch.vgic;
 	struct vgic_its *its = &dist->its;
+	struct its_device *dev;
+	struct its_itte *itte;
+	struct list_head *dev_cur, *dev_temp;
+	struct list_head *cur, *temp;
 
 	if (!vgic_has_its(kvm))
 		return;
 
+	/*
+	 * We may end up here without the lists ever having been initialized.
+	 * Check this and bail out early to avoid dereferencing a NULL pointer.
+	 */
+	if (!its->device_list.next)
+		return;
+
+	spin_lock(&its->lock);
+	list_for_each_safe(dev_cur, dev_temp, &its->device_list) {
+		dev = container_of(dev_cur, struct its_device, dev_list);
+		list_for_each_safe(cur, temp, &dev->itt) {
+			itte = (container_of(cur, struct its_itte, itte_list));
+			its_free_itte(itte);
+		}
+		list_del(dev_cur);
+		kfree(dev);
+	}
+
+	list_for_each_safe(cur, temp, &its->collection_list) {
+		list_del(cur);
+		kfree(container_of(cur, struct its_collection, coll_list));
+	}
+
 	kfree(dist->pendbaser);
 
 	its->enabled = false;
+	spin_unlock(&its->lock);
 }
