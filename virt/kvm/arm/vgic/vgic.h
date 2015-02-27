@@ -65,6 +65,7 @@ int vgic_register_redist_regions(struct kvm *kvm, gpa_t dist_base_address);
 
 int vits_init(struct kvm *kvm);
 void vgic_enable_lpis(struct kvm_vcpu *vcpu);
+void vits_destroy(struct kvm *kvm);
 #else
 static inline void vgic_v3_irq_change_affinity(struct kvm *kvm, u32 intid,
 					       u64 mpidr)
@@ -136,6 +137,11 @@ int vits_init(struct kvm *kvm)
 }
 
 static inline void vgic_enable_lpis(struct kvm_vcpu *vcpu)
+{
+	return;
+}
+
+static inline void vits_destroy(struct kvm *kvm)
 {
 	return;
 }

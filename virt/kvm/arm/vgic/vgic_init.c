@@ -298,6 +298,8 @@ void kvm_vgic_destroy(struct kvm *kvm)
 
 	kvm_vgic_dist_destroy(kvm);
 
+	vits_destroy(kvm);
+
 	kvm_for_each_vcpu(i, vcpu, kvm)
 		kvm_vgic_vcpu_destroy(vcpu);
 }
