@@ -39,11 +39,6 @@ struct vgic_global kvm_vgic_global_state;
  *     spin_lock(vcpuY->arch.vgic_cpu.ap_list_lock);
  */
 
-static inline struct vgic_irq *vgic_its_get_lpi(struct kvm *kvm, u32 intid)
-{
-	return NULL;
-}
-
 struct vgic_irq *vgic_get_irq(struct kvm *kvm, struct kvm_vcpu *vcpu,
 			      u32 intid)
 {

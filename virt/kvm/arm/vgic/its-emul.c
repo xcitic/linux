@@ -55,10 +55,28 @@ struct its_collection {
 struct its_itte {
 	struct list_head itte_list;
 
+	struct vgic_irq irq;
 	struct its_collection *collection;
 	u32 lpi;
 	u32 event_id;
 };
+
+/* To be used as an iterator this macro misses the enclosing parentheses */
+#define for_each_lpi(dev, itte, kvm) \
+	list_for_each_entry(dev, &(kvm)->arch.vgic.its.device_list, dev_list) \
+		list_for_each_entry(itte, &(dev)->itt, itte_list)
+
+static struct its_itte *find_itte_by_lpi(struct kvm *kvm, int lpi)
+{
+	struct its_device *device;
+	struct its_itte *itte;
+
+	for_each_lpi(device, itte, kvm) {
+		if (itte->lpi == lpi)
+			return itte;
+	}
+	return NULL;
+}
 
 #define BASER_BASE_ADDRESS(x) ((x) & 0xfffffffff000ULL)
 
@@ -164,6 +182,17 @@ static int vgic_mmio_read_its_idregs(struct kvm_vcpu *vcpu,
 	write_mask32(reg, addr & 3, len, val);
 
 	return 0;
+}
+
+struct vgic_irq *vgic_its_get_lpi(struct kvm *kvm, u32 intid)
+{
+	struct its_itte *itte;
+
+	itte = find_itte_by_lpi(kvm, intid);
+	if (!itte)
+		return NULL;
+
+	return &itte->irq;
 }
 
 static void its_free_itte(struct its_itte *itte)
