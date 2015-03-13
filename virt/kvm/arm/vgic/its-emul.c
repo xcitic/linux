@@ -367,6 +367,48 @@ static int vgic_mmio_read_its_idregs(struct kvm_vcpu *vcpu,
 	return 0;
 }
 
+/*
+ * Translates an incoming MSI request into the redistributor (=VCPU) and
+ * the associated LPI number. Sets the LPI pending bit and also marks the
+ * VCPU as having a pending interrupt.
+ */
+int vits_inject_msi(struct kvm *kvm, struct kvm_msi *msi)
+{
+	struct vgic_dist *dist = &kvm->arch.vgic;
+	struct vgic_its *its = &dist->its;
+	struct its_itte *itte;
+	bool inject = false;
+	int ret = 0;
+
+	if (!vgic_has_its(kvm))
+		return -ENODEV;
+
+	if (!(msi->flags & KVM_MSI_VALID_DEVID))
+		return -EINVAL;
+
+	spin_lock(&its->lock);
+
+	if (!its->enabled || !dist->lpis_enabled) {
+		ret = -EAGAIN;
+		goto out_unlock;
+	}
+
+	itte = find_itte(kvm, msi->devid, msi->data);
+	/* Triggering an unmapped IRQ gets silently dropped. */
+	if (!itte || !its_is_collection_mapped(itte->collection))
+		goto out_unlock;
+
+	inject = true;
+
+out_unlock:
+	spin_unlock(&its->lock);
+
+	if (inject)
+		vgic_queue_irq(kvm, NULL, itte->lpi, false, true, 0);
+
+	return ret;
+}
+
 struct vgic_irq *vgic_its_get_lpi(struct kvm *kvm, u32 intid)
 {
 	struct its_itte *itte;
@@ -791,6 +833,19 @@ static int vits_cmd_handle_movall(struct kvm *kvm, u64 *its_cmd)
 	return 0;
 }
 
+/* The INT command injects the LPI associated with that DevID/EvID pair. */
+static int vits_cmd_handle_int(struct kvm *kvm, u64 *its_cmd)
+{
+	struct kvm_msi msi = {
+		.data = its_cmd_get_id(its_cmd),
+		.devid = its_cmd_get_deviceid(its_cmd),
+		.flags = KVM_MSI_VALID_DEVID,
+	};
+
+	vits_inject_msi(kvm, &msi);
+	return 0;
+}
+
 /*
  * This function is called with both the ITS and the distributor lock dropped,
  * so the actual command handlers must take the respective locks when needed.
@@ -824,6 +879,9 @@ static int vits_handle_command(struct kvm_vcpu *vcpu, u64 *its_cmd)
 		break;
 	case GITS_CMD_MOVALL:
 		ret = vits_cmd_handle_movall(vcpu->kvm, its_cmd);
+		break;
+	case GITS_CMD_INT:
+		ret = vits_cmd_handle_int(vcpu->kvm, its_cmd);
 		break;
 	case GITS_CMD_INV:
 		ret = vits_cmd_handle_inv(vcpu->kvm, its_cmd);
