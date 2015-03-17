@@ -147,6 +147,8 @@ struct vgic_its {
 	int			cwriter;
 	struct list_head	device_list;
 	struct list_head	collection_list;
+	/* memory used for buffering guest's memory */
+	void			*buffer_page;
 };
 
 struct vgic_dist {

@@ -78,7 +78,125 @@ static struct its_itte *find_itte_by_lpi(struct kvm *kvm, int lpi)
 	return NULL;
 }
 
+#define LPI_PROP_ENABLE_BIT(p)	((p) & LPI_PROP_ENABLED)
+#define LPI_PROP_PRIORITY(p)	((p) & 0xfc)
+
+/* stores the priority and enable bit for a given LPI */
+static void update_lpi_config(struct kvm *kvm, struct its_itte *itte, u8 prop)
+{
+	/* TODO: do we need to lock this? */
+	itte->irq.priority = LPI_PROP_PRIORITY(prop);
+
+	vgic_queue_irq(kvm, NULL, itte->lpi, LPI_PROP_ENABLE_BIT(prop), false,
+		       0);
+}
+
+#define GIC_LPI_OFFSET 8192
+
+/* We scan the table in chunks the size of the smallest page size */
+#define CHUNK_SIZE 4096U
+
 #define BASER_BASE_ADDRESS(x) ((x) & 0xfffffffff000ULL)
+
+static int nr_idbits_propbase(u64 propbaser)
+{
+	int nr_idbits = (1U << (propbaser & 0x1f)) + 1;
+
+	return max(nr_idbits, INTERRUPT_ID_BITS_ITS);
+}
+
+/*
+ * Scan the whole LPI configuration table and put the LPI configuration
+ * data in our own data structures. This relies on the LPI being
+ * mapped before.
+ */
+static bool its_update_lpis_configuration(struct kvm *kvm, u64 prop_base_reg)
+{
+	struct vgic_dist *dist = &kvm->arch.vgic;
+	u8 *prop = dist->its.buffer_page;
+	u32 tsize;
+	gpa_t propbase;
+	int lpi = GIC_LPI_OFFSET;
+	struct its_itte *itte;
+	struct its_device *device;
+	int ret;
+
+	propbase = BASER_BASE_ADDRESS(prop_base_reg);
+	tsize = nr_idbits_propbase(prop_base_reg);
+
+	while (tsize > 0) {
+		int chunksize = min(tsize, CHUNK_SIZE);
+
+		ret = kvm_read_guest(kvm, propbase, prop, chunksize);
+		if (ret)
+			return false;
+
+		spin_lock(&dist->its.lock);
+		/*
+		 * Updating the status for all allocated LPIs. We catch
+		 * those LPIs that get disabled. We really don't care
+		 * about unmapped LPIs, as they need to be updated
+		 * later manually anyway once they get mapped.
+		 */
+		for_each_lpi(device, itte, kvm) {
+			if (itte->lpi < lpi || itte->lpi >= lpi + chunksize)
+				continue;
+
+			update_lpi_config(kvm, itte, prop[itte->lpi - lpi]);
+		}
+		spin_unlock(&dist->its.lock);
+		tsize -= chunksize;
+		lpi += chunksize;
+		propbase += chunksize;
+	}
+
+	return true;
+}
+
+/*
+ * Scan the whole LPI pending table and sync the pending bit in there
+ * with our own data structures. This relies on the LPI being
+ * mapped before.
+ */
+static bool its_sync_lpi_pending_table(struct kvm_vcpu *vcpu, u64 base_addr_reg)
+{
+	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
+	unsigned long *pendmask = dist->its.buffer_page;
+	u32 nr_lpis = 1U << INTERRUPT_ID_BITS_ITS;
+	gpa_t pendbase;
+	int lpi = 0;
+	struct its_itte *itte;
+	struct its_device *device;
+	int ret;
+	int lpi_bit, nr_bits;
+
+	pendbase = BASER_BASE_ADDRESS(base_addr_reg);
+
+	while (nr_lpis > 0) {
+		nr_bits = min(nr_lpis, CHUNK_SIZE * 8);
+
+		ret = kvm_read_guest(vcpu->kvm, pendbase, pendmask,
+				     nr_bits / 8);
+		if (ret)
+			return false;
+
+		spin_lock(&dist->its.lock);
+		for_each_lpi(device, itte, vcpu->kvm) {
+			lpi_bit = itte->lpi - lpi;
+			if (lpi_bit < 0 || lpi_bit >= nr_bits)
+				continue;
+
+			vgic_queue_irq(vcpu->kvm, NULL, itte->lpi, false,
+				       test_bit(lpi_bit, pendmask), 0);
+		}
+		spin_unlock(&dist->its.lock);
+		nr_lpis -= nr_bits;
+		lpi += nr_bits;
+		pendbase += nr_bits / 8;
+	}
+
+	return true;
+}
 
 static int vgic_mmio_read_its_ctlr(struct kvm_vcpu *vcpu,
 				   struct kvm_io_device *this,
@@ -357,6 +475,14 @@ struct vgic_register_region its_registers[] = {
 /* This is called on setting the LPI enable bit in the redistributor. */
 void vgic_enable_lpis(struct kvm_vcpu *vcpu)
 {
+	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
+	u64 prop_base_reg, pend_base_reg;
+
+	pend_base_reg = dist->pendbaser[vcpu->vcpu_id];
+	prop_base_reg = dist->propbaser;
+
+	its_update_lpis_configuration(vcpu->kvm, prop_base_reg);
+	its_sync_lpi_pending_table(vcpu, pend_base_reg);
 }
 
 int vits_init(struct kvm *kvm)
@@ -369,6 +495,10 @@ int vits_init(struct kvm *kvm)
 
 	dist->pendbaser = kcalloc(nr_vcpus, sizeof(u64), GFP_KERNEL);
 	if (!dist->pendbaser)
+		return -ENOMEM;
+
+	its->buffer_page = kmalloc(CHUNK_SIZE, GFP_KERNEL);
+	if (!its->buffer_page)
 		return -ENOMEM;
 
 	spin_lock_init(&its->lock);
@@ -429,6 +559,7 @@ void vits_destroy(struct kvm *kvm)
 		kfree(container_of(cur, struct its_collection, coll_list));
 	}
 
+	kfree(its->buffer_page);
 	kfree(dist->pendbaser);
 
 	its->enabled = false;
