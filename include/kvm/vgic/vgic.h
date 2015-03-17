@@ -141,6 +141,7 @@ struct vgic_io_device {
 
 struct vgic_its {
 	bool			enabled;
+	struct vgic_io_device	iodev;
 	spinlock_t		lock;
 	u64			cbaser;
 	int			creadr;
@@ -158,6 +159,9 @@ struct vgic_dist {
 
 	/* vGIC model the kernel emulates for the guest (GICv2 or GICv3) */
 	u32			vgic_model;
+
+	/* Do injected MSIs require an additional device ID? */
+	bool			msis_require_devid;
 
 	int			nr_spis;
 
@@ -286,5 +290,7 @@ static inline int kvm_vgic_get_max_vcpus(void)
 }
 
 bool vgic_has_its(struct kvm *kvm);
+
+int kvm_send_userspace_msi(struct kvm *kvm, struct kvm_msi *msi);
 
 #endif /* __ASM_ARM_KVM_VGIC_VGIC_H */

@@ -1090,8 +1090,9 @@ int vits_init(struct kvm *kvm)
 		return ret;
 
 	its->enabled = false;
+	dist->msis_require_devid = true;
 
-	return -ENXIO;
+	return 0;
 }
 
 void vits_destroy(struct kvm *kvm)

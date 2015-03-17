@@ -645,3 +645,11 @@ bool vgic_has_its(struct kvm *kvm)
 
 	return !IS_VGIC_ADDR_UNDEF(dist->vgic_its_base);
 }
+
+int kvm_send_userspace_msi(struct kvm *kvm, struct kvm_msi *msi)
+{
+	if (vgic_has_its(kvm))
+		return vits_inject_msi(kvm, msi);
+	else
+		return -ENODEV;
+}
