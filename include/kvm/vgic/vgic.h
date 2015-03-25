@@ -174,6 +174,14 @@ struct vgic_dist {
 
 	struct vgic_io_device	*dist_iodevs;
 	struct vgic_io_device	*redist_iodevs;
+
+	/* Address of LPI configuration table shared by all redistributors */
+	u64			propbaser;
+
+	/* Addresses of LPI pending tables per redistributor */
+	u64			*pendbaser;
+
+	bool			lpis_enabled;
 };
 
 struct vgic_v2_cpu_if {

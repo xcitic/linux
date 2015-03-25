@@ -742,7 +742,9 @@ static int vgic_mmio_read_v3r_propbase(struct kvm_vcpu *vcpu,
 				       struct kvm_io_device *this,
 				       gpa_t addr, int len, void *val)
 {
-	/* TODO: implement */
+	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
+
+	write_mask64(dist->propbaser, addr & 7, len, val);
 	return 0;
 }
 
@@ -750,7 +752,11 @@ static int vgic_mmio_write_v3r_propbase(struct kvm_vcpu *vcpu,
 				        struct kvm_io_device *this,
 				        gpa_t addr, int len, const void *val)
 {
-	/* TODO: implement */
+	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
+
+	/* Storing a value with LPIs already enabled is undefined */
+	if (!dist->lpis_enabled)
+		dist->propbaser = mask64(dist->propbaser, addr & 7, len, val);
 	return 0;
 }
 
@@ -758,7 +764,12 @@ static int vgic_mmio_read_v3r_pendbase(struct kvm_vcpu *vcpu,
 				       struct kvm_io_device *this,
 				       gpa_t addr, int len, void *val)
 {
-	/* TODO: implement */
+	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
+	struct vgic_io_device *iodev = container_of(this,
+						    struct vgic_io_device, dev);
+	u64 pendbaser = dist->pendbaser[iodev->redist_vcpu->vcpu_id];
+
+	write_mask64(pendbaser, addr & 7, len, val);
 	return 0;
 }
 
@@ -766,7 +777,14 @@ static int vgic_mmio_write_v3r_pendbase(struct kvm_vcpu *vcpu,
 				        struct kvm_io_device *this,
 				        gpa_t addr, int len, const void *val)
 {
-	/* TODO: implement */
+	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
+	struct vgic_io_device *iodev = container_of(this,
+						    struct vgic_io_device, dev);
+	u64 *pendbaser = &dist->pendbaser[iodev->redist_vcpu->vcpu_id];
+
+	/* Storing a value with LPIs already enabled is undefined */
+	if (!dist->lpis_enabled)
+		*pendbaser = mask64(*pendbaser, addr & 7, len, val);
 	return 0;
 }
 
