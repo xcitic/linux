@@ -25,7 +25,12 @@
 #include <clocksource/arm_arch_timer.h>
 #include <asm/arch_timer.h>
 
+#ifdef CONFIG_KVM_NEW_VGIC
+#include <kvm/vgic/vgic.h>
+#define CREATE_TRACE_POINTS
+#else
 #include <kvm/arm_vgic.h>
+#endif
 #include <kvm/arm_arch_timer.h>
 
 #include "trace.h"

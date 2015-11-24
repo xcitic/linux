@@ -37,7 +37,11 @@
 
 #define KVM_VCPU_MAX_FEATURES 2
 
+#ifdef CONFIG_KVM_NEW_VGIC
+#include <kvm/vgic/vgic.h>
+#else
 #include <kvm/arm_vgic.h>
+#endif
 
 #define KVM_MAX_VCPUS VGIC_V2_MAX_CPUS
 

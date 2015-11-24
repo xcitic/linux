@@ -36,7 +36,11 @@
 #define KVM_COALESCED_MMIO_PAGE_OFFSET 1
 #define KVM_HALT_POLL_NS_DEFAULT 500000
 
+#ifdef CONFIG_KVM_NEW_VGIC
+#include <kvm/vgic/vgic.h>
+#else
 #include <kvm/arm_vgic.h>
+#endif
 #include <kvm/arm_arch_timer.h>
 #include <kvm/arm_pmu.h>
 

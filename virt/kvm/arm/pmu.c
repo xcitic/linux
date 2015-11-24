@@ -22,7 +22,11 @@
 #include <linux/uaccess.h>
 #include <asm/kvm_emulate.h>
 #include <kvm/arm_pmu.h>
+#ifdef CONFIG_KVM_NEW_VGIC
+#include <kvm/vgic/vgic.h>
+#else
 #include <kvm/arm_vgic.h>
+#endif
 
 /**
  * kvm_pmu_get_counter_value - get PMU counter value
