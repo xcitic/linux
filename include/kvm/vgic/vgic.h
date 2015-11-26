@@ -99,6 +99,8 @@ struct vgic_global {
 	int			nr_lr;
 };
 
+extern struct vgic_global kvm_vgic_global_state;
+
 #define VGIC_V2_MAX_LRS		(1 << 6)
 #define VGIC_V3_MAX_LRS		16
 #define VGIC_V3_LR_INDEX(lr)	(VGIC_V3_MAX_LRS - 1 - lr)
@@ -146,6 +148,7 @@ struct vgic_dist {
 
 	int			nr_spis;
 
+	/* TODO: Consider moving to global state */
 	/* Virtual control interface mapping */
 	void __iomem		*vctrl_base;
 
@@ -202,6 +205,7 @@ struct vgic_cpu {
 	/* Number of list registers on this CPU */
 	int		nr_lr;
 
+	unsigned int used_lrs;
 	struct vgic_irq private_irqs[VGIC_NR_PRIVATE_IRQS];
 
 	spinlock_t ap_list_lock;	/* Protects the ap_list */
@@ -223,8 +227,6 @@ int kvm_vgic_addr(struct kvm *kvm, unsigned long type, u64 *addr, bool write);
 int kvm_vgic_inject_irq(struct kvm *kvm, int cpuid, unsigned int intid,
 			bool level);
 
-static inline void kvm_vgic_flush_hwstate(struct kvm_vcpu *vcpu) { }
-static inline void kvm_vgic_sync_hwstate(struct kvm_vcpu *vcpu) { }
 
 static inline int kvm_vgic_inject_mapped_irq(struct kvm *kvm, int cpuid,
 					     struct irq_phys_map *map,
@@ -250,5 +252,9 @@ static inline int kvm_vgic_vcpu_active_irq(struct kvm_vcpu *vcpu)
 #define vgic_initialized(k)	(false)
 #define vgic_ready(k)		((k)->arch.vgic.ready)
 #define vgic_valid_spi(k,i)	((k)->arch.vgic.nr_spis + VGIC_NR_PRIVATE_IRQS > i)
+
+bool kvm_vcpu_has_pending_irqs(struct kvm_vcpu *vcpu);
+void kvm_vgic_sync_hwstate(struct kvm_vcpu *vcpu);
+void kvm_vgic_flush_hwstate(struct kvm_vcpu *vcpu);
 
 #endif /* __ASM_ARM_KVM_VGIC_VGIC_H */
