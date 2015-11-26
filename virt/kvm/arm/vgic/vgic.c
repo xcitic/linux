@@ -17,6 +17,8 @@
 #include <linux/kvm.h>
 #include <linux/kvm_host.h>
 
+#include "vgic.h"
+
 /*
  * Locking order is always:
  *   vgic_cpu->ap_list_lock
