@@ -440,9 +440,15 @@ static int compute_ap_list_depth(struct kvm_vcpu *vcpu)
 	struct vgic_irq *irq;
 	int count = 0;
 
-	list_for_each_entry(irq, &vgic_cpu->ap_list_head, ap_list)
-		count++;
-
+	list_for_each_entry(irq, &vgic_cpu->ap_list_head, ap_list) {
+		spin_lock(&irq->irq_lock);
+		/* GICv2 SGIs can count for more than one... */
+		if (irq->intid < VGIC_NR_SGIS && irq->source)
+			count += hweight8(irq->source);
+		else
+			count++;
+		spin_unlock(&irq->irq_lock);
+	}
 	return count;
 }
 
@@ -450,6 +456,7 @@ static int compute_ap_list_depth(struct kvm_vcpu *vcpu)
 static void vgic_populate_lrs(struct kvm_vcpu *vcpu)
 {
 	struct vgic_cpu *vgic_cpu = &vcpu->arch.vgic_cpu;
+	u32 model = vcpu->kvm->arch.vgic.vgic_model;
 	struct vgic_irq *irq;
 	int count = 0;
 
@@ -460,8 +467,23 @@ static void vgic_populate_lrs(struct kvm_vcpu *vcpu)
 
 	list_for_each_entry(irq, &vgic_cpu->ap_list_head, ap_list) {
 		spin_lock(&irq->irq_lock);
-		if (vgic_target_oracle(irq) == vcpu)
+
+		if (unlikely(vgic_target_oracle(irq) != vcpu))
+			goto next;
+
+		/*
+		 * If we get an SGI with multiple sources, try to get
+		 * them in all at once.
+		 */
+		if (model == KVM_DEV_TYPE_ARM_VGIC_V2 &&
+		    irq->intid < VGIC_NR_SGIS) {
+			while (irq->source && count < vcpu->arch.vgic_cpu.nr_lr)
+				vgic_populate_lr(vcpu, irq, count++);
+		} else {
 			vgic_populate_lr(vcpu, irq, count++);
+		}
+
+next:
 		spin_unlock(&irq->irq_lock);
 
 		if (count == vcpu->arch.vgic_cpu.nr_lr)
