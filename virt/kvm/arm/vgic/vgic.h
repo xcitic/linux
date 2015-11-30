@@ -81,4 +81,6 @@ static inline int vgic_v3_redist_access(struct kvm_vcpu *vcpu, bool is_write,
 }
 #endif
 
+void kvm_register_vgic_device(unsigned long type);
+
 #endif
