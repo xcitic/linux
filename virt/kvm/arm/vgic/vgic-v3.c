@@ -59,8 +59,14 @@ void vgic_v3_process_maintenance(struct kvm_vcpu *vcpu)
 		cpuif->vgic_eisr = 0;
 	}
 
-	if (cpuif->vgic_misr & ICH_MISR_U)
-		cpuif->vgic_hcr &= ~ICH_HCR_UIE;
+	cpuif->vgic_hcr &= ~ICH_HCR_UIE;
+}
+
+void vgic_v3_set_underflow(struct kvm_vcpu *vcpu)
+{
+	struct vgic_v3_cpu_if *cpuif = &vcpu->arch.vgic_cpu.vgic_v3;
+
+	cpuif->vgic_hcr |= ICH_HCR_UIE;
 }
 
 void vgic_v3_fold_lr_state(struct kvm_vcpu *vcpu)

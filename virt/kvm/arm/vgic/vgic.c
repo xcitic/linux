@@ -426,6 +426,14 @@ static inline void vgic_populate_lr(struct kvm_vcpu *vcpu,
 		vgic_v3_populate_lr(vcpu, irq, lr);
 }
 
+static inline void vgic_set_underflow(struct kvm_vcpu *vcpu)
+{
+	if (kvm_vgic_global_state.type == VGIC_V2)
+		vgic_v2_set_underflow(vcpu);
+	else
+		vgic_v3_set_underflow(vcpu);
+}
+
 static int compute_ap_list_depth(struct kvm_vcpu *vcpu)
 {
 	struct vgic_cpu *vgic_cpu = &vcpu->arch.vgic_cpu;
@@ -445,8 +453,10 @@ static void vgic_populate_lrs(struct kvm_vcpu *vcpu)
 	struct vgic_irq *irq;
 	int count = 0;
 
-	if (compute_ap_list_depth(vcpu) > vcpu->arch.vgic_cpu.nr_lr)
+	if (compute_ap_list_depth(vcpu) > vcpu->arch.vgic_cpu.nr_lr) {
+		vgic_set_underflow(vcpu);
 		vgic_sort_ap_list(vcpu);
+	}
 
 	list_for_each_entry(irq, &vgic_cpu->ap_list_head, ap_list) {
 		spin_lock(&irq->irq_lock);

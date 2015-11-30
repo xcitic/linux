@@ -61,8 +61,7 @@ void vgic_v2_process_maintenance(struct kvm_vcpu *vcpu)
 	}
 
 	/* check and disable underflow maintenance IRQ */
-	if (cpuif->vgic_misr & GICH_MISR_U)
-		cpuif->vgic_hcr &= ~GICH_HCR_UIE;
+	cpuif->vgic_hcr &= ~GICH_HCR_UIE;
 
 	/*
 	 * In the next iterations of the vcpu loop, if we sync the
@@ -72,6 +71,13 @@ void vgic_v2_process_maintenance(struct kvm_vcpu *vcpu)
 	 * here.
 	 */
 	cpuif->vgic_eisr = 0;
+}
+
+void vgic_v2_set_underflow(struct kvm_vcpu *vcpu)
+{
+	struct vgic_v2_cpu_if *cpuif = &vcpu->arch.vgic_cpu.vgic_v2;
+
+	cpuif->vgic_hcr |= GICH_HCR_UIE;
 }
 
 /*
