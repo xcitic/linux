@@ -499,6 +499,43 @@ static int vgic_mmio_write_target(struct kvm_vcpu *vcpu,
 	return 0;
 }
 
+static int vgic_mmio_write_sgir(struct kvm_vcpu *source_vcpu,
+				struct kvm_io_device *this,
+				gpa_t addr, int len, const void *val)
+{
+	int nr_vcpus = atomic_read(&source_vcpu->kvm->online_vcpus);
+	u32 value = *(u32 *)val;
+	int intid = value & 0xf;
+	int targets = (value >> 16) & 0xff;
+	int mode = (value >> 24) & 0x03;
+	int c;
+	struct kvm_vcpu *vcpu;
+
+	switch (mode) {
+	case 0x0:		/* as specified by targets */
+		break;
+	case 0x1:
+		targets = (1U << nr_vcpus) - 1;			/* all, ... */
+		targets &= ~(1U << source_vcpu->vcpu_id);	/* but self */
+		break;
+	case 0x2:		/* this very vCPU only */
+		targets = (1U << source_vcpu->vcpu_id);
+		break;
+	case 0x3:		/* reserved */
+		break;
+	}
+
+	kvm_for_each_vcpu(c, vcpu, source_vcpu->kvm) {
+		if (!(targets & (1U << c)))
+			continue;
+
+		vgic_queue_irq(source_vcpu->kvm, vcpu, intid, false, true,
+			       (1U << source_vcpu->vcpu_id));
+	}
+
+	return 0;
+}
+
 struct vgic_register_region vgic_v2_dist_registers[] = {
 	REGISTER_DESC_WITH_LENGTH(GIC_DIST_CTRL,
 		vgic_mmio_read_v2_misc, vgic_mmio_write_v2_misc, 12),
@@ -523,7 +560,7 @@ struct vgic_register_region vgic_v2_dist_registers[] = {
 	REGISTER_DESC_WITH_BITS_PER_IRQ(GIC_DIST_CONFIG,
 		vgic_mmio_read_config, vgic_mmio_write_config, 2),
 	REGISTER_DESC_WITH_LENGTH(GIC_DIST_SOFTINT,
-		vgic_mmio_read_nyi, vgic_mmio_write_nyi, 4),
+		vgic_mmio_read_raz, vgic_mmio_write_sgir, 4),
 	REGISTER_DESC_WITH_LENGTH(GIC_DIST_SGI_PENDING_CLEAR,
 		vgic_mmio_read_nyi, vgic_mmio_write_nyi, 16),
 	REGISTER_DESC_WITH_LENGTH(GIC_DIST_SGI_PENDING_SET,
