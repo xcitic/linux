@@ -16,8 +16,16 @@
 #include <linux/kvm.h>
 #include <linux/kvm_host.h>
 #include <linux/irqchip/arm-gic.h>
+#include <kvm/vgic/vgic.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_irq.h>
+#include <asm/kvm_mmu.h>
+#include <asm/kvm_asm.h>
 
 #include "vgic.h"
+
+static u32 ich_vtr_el2;
 
 void vgic_v3_process_maintenance(struct kvm_vcpu *vcpu)
 {
@@ -211,4 +219,70 @@ void vgic_v3_get_vmcr(struct kvm_vcpu *vcpu, struct vgic_vmcr *vmcrp)
 	vmcrp->abpr = (vmcr & ICH_VMCR_BPR1_MASK) >> ICH_VMCR_BPR1_SHIFT;
 	vmcrp->bpr  = (vmcr & ICH_VMCR_BPR0_MASK) >> ICH_VMCR_BPR0_SHIFT;
 	vmcrp->pmr  = (vmcr & ICH_VMCR_PMR_MASK) >> ICH_VMCR_PMR_SHIFT;
+}
+
+/**
+ * vgic_v3_probe - probe for a GICv3 compatible interrupt controller in DT
+ * @node:	pointer to the DT node
+ *
+ * Returns 0 if a GICv3 has been found, returns an error code otherwise
+ */
+int vgic_v3_probe(struct device_node *vgic_node)
+{
+	int ret = 0;
+	u32 gicv_idx;
+	struct resource vcpu_res;
+
+	kvm_vgic_global_state.maint_irq = irq_of_parse_and_map(vgic_node, 0);
+	if (!kvm_vgic_global_state.maint_irq) {
+		kvm_err("error getting vgic maintenance irq from DT\n");
+		ret = -ENXIO;
+		goto out;
+	}
+
+	ich_vtr_el2 = kvm_call_hyp(__vgic_v3_get_ich_vtr_el2);
+
+	/*
+	 * The ListRegs field is 5 bits, but there is a architectural
+	 * maximum of 16 list registers. Just ignore bit 4...
+	 */
+	kvm_vgic_global_state.nr_lr = (ich_vtr_el2 & 0xf) + 1;
+	kvm_vgic_global_state.can_emulate_gicv2 = false;
+
+	if (of_property_read_u32(vgic_node, "#redistributor-regions",
+				 &gicv_idx))
+		gicv_idx = 1;
+
+	gicv_idx += 3; /* Also skip GICD, GICC, GICH */
+	if (of_address_to_resource(vgic_node, gicv_idx, &vcpu_res)) {
+		kvm_info("GICv3: no GICV resource entry\n");
+		kvm_vgic_global_state.vcpu_base = 0;
+	} else if (!PAGE_ALIGNED(vcpu_res.start)) {
+		pr_warn("GICV physical address 0x%llx not page aligned\n",
+			(unsigned long long)vcpu_res.start);
+		kvm_vgic_global_state.vcpu_base = 0;
+	} else if (!PAGE_ALIGNED(resource_size(&vcpu_res))) {
+		pr_warn("GICV size 0x%llx not a multiple of page size 0x%lx\n",
+			(unsigned long long)resource_size(&vcpu_res),
+			PAGE_SIZE);
+		kvm_vgic_global_state.vcpu_base = 0;
+	} else {
+		kvm_vgic_global_state.vcpu_base = vcpu_res.start;
+		kvm_vgic_global_state.can_emulate_gicv2 = true;
+		kvm_register_vgic_device(KVM_DEV_TYPE_ARM_VGIC_V2);
+	}
+	if (kvm_vgic_global_state.vcpu_base == 0)
+		kvm_info("disabling GICv2 emulation\n");
+	kvm_register_vgic_device(KVM_DEV_TYPE_ARM_VGIC_V3);
+
+	kvm_vgic_global_state.vctrl_base = NULL;
+	kvm_vgic_global_state.type = VGIC_V3;
+	kvm_vgic_global_state.max_gic_vcpus = VGIC_V3_MAX_CPUS;
+
+	kvm_info("%s@%llx IRQ%d\n", vgic_node->name,
+		 vcpu_res.start, kvm_vgic_global_state.maint_irq);
+
+out:
+	of_node_put(vgic_node);
+	return ret;
 }

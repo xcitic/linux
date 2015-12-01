@@ -17,6 +17,11 @@
 #include <linux/irqchip/arm-gic.h>
 #include <linux/kvm.h>
 #include <linux/kvm_host.h>
+#include <kvm/vgic/vgic.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_irq.h>
+#include <asm/kvm_mmu.h>
 
 #include "vgic.h"
 
@@ -227,4 +232,89 @@ void vgic_v2_irq_change_affinity(struct kvm *kvm, u32 intid, u8 new_targets)
 	target = target ? (target - 1) : 0;
 	irq->target_vcpu = kvm_get_vcpu(kvm, target);
 	spin_unlock(&irq->irq_lock);
+}
+
+/**
+ * vgic_v2_probe - probe for a GICv2 compatible interrupt controller in DT
+ * @node:	pointer to the DT node
+ *
+ * Returns 0 if a GICv2 has been found, returns an error code otherwise
+ */
+int vgic_v2_probe(struct device_node *vgic_node)
+{
+	int ret;
+	struct resource vctrl_res;
+	struct resource vcpu_res;
+
+	kvm_vgic_global_state.maint_irq = irq_of_parse_and_map(vgic_node, 0);
+	if (!kvm_vgic_global_state.maint_irq) {
+		kvm_err("error getting vgic maintenance irq from DT\n");
+		ret = -ENXIO;
+		goto out;
+	}
+
+	ret = of_address_to_resource(vgic_node, 2, &vctrl_res);
+	if (ret) {
+		kvm_err("Cannot obtain GICH resource\n");
+		goto out;
+	}
+
+	kvm_vgic_global_state.vctrl_base = of_iomap(vgic_node, 2);
+	if (!kvm_vgic_global_state.vctrl_base) {
+		kvm_err("Cannot ioremap GICH\n");
+		ret = -ENOMEM;
+		goto out;
+	}
+
+	kvm_vgic_global_state.nr_lr =
+		readl_relaxed(kvm_vgic_global_state.vctrl_base + GICH_VTR);
+	kvm_vgic_global_state.nr_lr = (kvm_vgic_global_state.nr_lr & 0x3f) + 1;
+
+	ret = create_hyp_io_mappings(kvm_vgic_global_state.vctrl_base,
+				     kvm_vgic_global_state.vctrl_base +
+					 resource_size(&vctrl_res),
+				     vctrl_res.start);
+	if (ret) {
+		kvm_err("Cannot map VCTRL into hyp\n");
+		goto out_unmap;
+	}
+
+	if (of_address_to_resource(vgic_node, 3, &vcpu_res)) {
+		kvm_err("Cannot obtain GICV resource\n");
+		ret = -ENXIO;
+		goto out_unmap;
+	}
+
+	if (!PAGE_ALIGNED(vcpu_res.start)) {
+		kvm_err("GICV physical address 0x%llx not page aligned\n",
+			(unsigned long long)vcpu_res.start);
+		ret = -ENXIO;
+		goto out_unmap;
+	}
+
+	if (!PAGE_ALIGNED(resource_size(&vcpu_res))) {
+		kvm_err("GICV size 0x%llx not a multiple of page size 0x%lx\n",
+			(unsigned long long)resource_size(&vcpu_res),
+			PAGE_SIZE);
+		ret = -ENXIO;
+		goto out_unmap;
+	}
+
+	kvm_vgic_global_state.can_emulate_gicv2 = true;
+	kvm_register_vgic_device(KVM_DEV_TYPE_ARM_VGIC_V2);
+
+	kvm_vgic_global_state.vcpu_base = vcpu_res.start;
+
+	kvm_info("%s@%llx IRQ%d\n", vgic_node->name,
+		 vctrl_res.start, kvm_vgic_global_state.maint_irq);
+
+	kvm_vgic_global_state.type = VGIC_V2;
+	kvm_vgic_global_state.max_gic_vcpus = VGIC_V2_MAX_CPUS;
+	goto out;
+
+out_unmap:
+	iounmap(kvm_vgic_global_state.vctrl_base);
+out:
+	of_node_put(vgic_node);
+	return ret;
 }

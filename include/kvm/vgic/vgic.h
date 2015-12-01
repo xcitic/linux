@@ -98,11 +98,23 @@ struct vgic_global {
 	/* type of the host GIC */
 	enum vgic_type		type;
 
+	/* Physical address of vgic virtual cpu interface */
+	phys_addr_t		vcpu_base;
+
 	/* virtual control interface mapping */
 	void __iomem		*vctrl_base;
 
 	/* Number of implemented list registers */
 	int			nr_lr;
+
+	/* Maintenance IRQ number */
+	unsigned int		maint_irq;
+
+	/* maximum number of VCPUs allowed (GICv2 limits us to 8) */
+	int			max_gic_vcpus;
+
+	/* Only needed for the legacy KVM_CREATE_IRQCHIP */
+	bool			can_emulate_gicv2;
 };
 
 extern struct vgic_global kvm_vgic_global_state;
