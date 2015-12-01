@@ -139,6 +139,12 @@ struct vgic_irq {
 	enum vgic_irq_config config;	/* Level or edge */
 };
 
+struct vgic_io_device {
+	gpa_t base_addr;
+	struct kvm_vcpu *redist_vcpu;
+	struct kvm_io_device dev;
+};
+
 struct vgic_dist {
 	bool			in_kernel;
 	bool			ready;
@@ -168,6 +174,9 @@ struct vgic_dist {
 	u32			enabled;
 
 	struct vgic_irq		*spis;
+
+	struct vgic_io_device	*dist_iodevs;
+	struct vgic_io_device	*redist_iodevs;
 };
 
 struct vgic_v2_cpu_if {

@@ -199,4 +199,3 @@ void vgic_v2_irq_change_affinity(struct kvm *kvm, u32 intid, u8 new_targets)
 	irq->target_vcpu = kvm_get_vcpu(kvm, target);
 	spin_unlock(&irq->irq_lock);
 }
-
