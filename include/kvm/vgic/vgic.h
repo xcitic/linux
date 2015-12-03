@@ -209,6 +209,13 @@ struct vgic_v3_cpu_if {
 #endif
 };
 
+struct vgic_vmcr {
+	u32	ctlr;
+	u32	abpr;
+	u32	bpr;
+	u32	pmr;
+};
+
 struct vgic_cpu {
 	/* CPU vif control registers for world switch */
 	union {
