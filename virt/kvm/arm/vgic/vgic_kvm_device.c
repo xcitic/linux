@@ -17,7 +17,10 @@
 #include <kvm/vgic/vgic.h>
 #include <linux/uaccess.h>
 #include <asm/kvm_mmu.h>
+#include <linux/irqchip/arm-gic.h>
 #include "vgic.h"
+
+#define GICC_ARCH_VERSION_V2		0x2
 
 /* common helpers */
 
@@ -252,6 +255,69 @@ void kvm_register_vgic_device(unsigned long type)
 	}
 }
 
+static u32 vgic_read_vcpuif(struct kvm_vcpu *vcpu, int offset)
+{
+	struct vgic_vmcr vmcr;
+	u32 *field;
+
+	switch (offset) {
+	case GIC_CPU_CTRL:
+		field = &vmcr.ctlr;
+		break;
+	case GIC_CPU_PRIMASK:
+		field = &vmcr.pmr;
+		break;
+	case GIC_CPU_BINPOINT:
+		field = &vmcr.bpr;
+		break;
+	case GIC_CPU_ALIAS_BINPOINT:
+		field = &vmcr.abpr;
+		break;
+	case GIC_CPU_IDENT:
+		return (PRODUCT_ID_KVM << 20) |
+		       (GICC_ARCH_VERSION_V2 << 16) |
+		       (IMPLEMENTER_ARM << 0);
+	default:
+		return 0;
+	}
+
+	vgic_get_vmcr(vcpu, &vmcr);
+
+	return *field;
+}
+
+static bool vgic_write_vcpuif(struct kvm_vcpu *vcpu, int offset, u32 value)
+{
+	struct vgic_vmcr vmcr;
+	u32 *field;
+
+	switch (offset) {
+	case GIC_CPU_CTRL:
+		field = &vmcr.ctlr;
+		break;
+	case GIC_CPU_PRIMASK:
+		field = &vmcr.pmr;
+		break;
+	case GIC_CPU_BINPOINT:
+		field = &vmcr.bpr;
+		break;
+	case GIC_CPU_ALIAS_BINPOINT:
+		field = &vmcr.abpr;
+		break;
+	default:
+		return false;
+	}
+
+	vgic_get_vmcr(vcpu, &vmcr);
+	if (*field == value)
+		return false;
+
+	*field = value;
+	vgic_set_vmcr(vcpu, &vmcr);
+
+	return true;
+}
+
 /** vgic_attr_regs_access: allows user space to read/write VGIC registers
  *
  * @dev: kvm device handle
@@ -300,7 +366,11 @@ static int vgic_attr_regs_access(struct kvm_device *dev,
 
 	switch (attr->group) {
 	case KVM_DEV_ARM_VGIC_GRP_CPU_REGS:
-		ret = -EINVAL;
+		ret = 0;
+		if (is_write)
+			vgic_write_vcpuif(vcpu, addr, *reg);
+		else
+			*reg = vgic_read_vcpuif(vcpu, addr);
 		break;
 	case KVM_DEV_ARM_VGIC_GRP_DIST_REGS:
 		ret = vgic_v2_dist_access(vcpu, is_write, addr, 4, reg);
