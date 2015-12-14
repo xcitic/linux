@@ -55,4 +55,8 @@ config PINCTRL_SUN9I_A80
 	def_bool MACH_SUN9I
 	select PINCTRL_SUNXI_COMMON
 
+config PINCTRL_A64
+	bool
+	select PINCTRL_SUNXI_COMMON
+
 endif
