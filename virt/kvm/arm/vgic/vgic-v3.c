@@ -226,6 +226,50 @@ void vgic_v3_enable(struct kvm_vcpu *vcpu)
 {
 }
 
+int vgic_v3_map_resources(struct kvm *kvm)
+{
+	int ret = 0;
+	struct vgic_dist *dist = &kvm->arch.vgic;
+
+	if (vgic_ready(kvm))
+		goto out;
+
+	if (IS_VGIC_ADDR_UNDEF(dist->vgic_dist_base) ||
+	    IS_VGIC_ADDR_UNDEF(dist->vgic_redist_base)) {
+		kvm_err("Need to set vgic distributor addresses first\n");
+		ret = -ENXIO;
+		goto out;
+	}
+
+	/*
+	 * For a VGICv3 we require the userland to explicitly initialize
+	 * the VGIC before we need to use it.
+	 */
+	if (!vgic_initialized(kvm)) {
+		ret = -EBUSY;
+		goto out;
+	}
+
+	ret = vgic_register_dist_regions(kvm, dist->vgic_dist_base, VGIC_V3);
+	if (ret) {
+		kvm_err("Unable to register VGICv3 dist MMIO regions\n");
+		goto out;
+	}
+
+	ret = vgic_register_redist_regions(kvm, dist->vgic_redist_base);
+	if (ret) {
+		kvm_err("Unable to register VGICv3 redist MMIO regions\n");
+		goto out;
+	}
+
+	dist->ready = true;
+
+out:
+	if (ret)
+		kvm_vgic_destroy(kvm);
+	return ret;
+}
+
 /**
  * vgic_v3_probe - probe for a GICv3 compatible interrupt controller in DT
  * @node:	pointer to the DT node

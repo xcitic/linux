@@ -239,6 +239,53 @@ void vgic_v2_enable(struct kvm_vcpu *vcpu)
 {
 }
 
+int vgic_v2_map_resources(struct kvm *kvm)
+{
+	struct vgic_dist *dist = &kvm->arch.vgic;
+	int ret = 0;
+
+	if (vgic_ready(kvm))
+		goto out;
+
+	if (IS_VGIC_ADDR_UNDEF(dist->vgic_dist_base) ||
+	    IS_VGIC_ADDR_UNDEF(dist->vgic_cpu_base)) {
+		kvm_err("Need to set vgic cpu and dist addresses first\n");
+		ret = -ENXIO;
+		goto out;
+	}
+
+	/*
+	 * Initialize the vgic if this hasn't already been done on demand by
+	 * accessing the vgic state from userspace.
+	 */
+	ret = vgic_init(kvm);
+	if (ret) {
+		kvm_err("Unable to initialize VGIC dynamic data structures\n");
+		goto out;
+	}
+
+	ret = vgic_register_dist_regions(kvm, dist->vgic_dist_base, VGIC_V2);
+	if (ret) {
+		kvm_err("Unable to register VGIC MMIO regions\n");
+		goto out;
+	}
+
+	ret = kvm_phys_addr_ioremap(kvm, dist->vgic_cpu_base,
+				    kvm_vgic_global_state.vcpu_base,
+				    KVM_VGIC_V2_CPU_SIZE, true);
+	if (ret) {
+		kvm_err("Unable to remap VGIC CPU to VCPU\n");
+		goto out;
+	}
+
+	dist->ready = true;
+
+out:
+	if (ret)
+		kvm_vgic_destroy(kvm);
+	return ret;
+}
+
 /**
  * vgic_v2_probe - probe for a GICv2 compatible interrupt controller in DT
  * @node:	pointer to the DT node

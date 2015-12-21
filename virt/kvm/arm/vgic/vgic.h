@@ -42,6 +42,9 @@ void vgic_v2_set_vmcr(struct kvm_vcpu *vcpu, struct vgic_vmcr *vmcr);
 void vgic_v2_get_vmcr(struct kvm_vcpu *vcpu, struct vgic_vmcr *vmcr);
 void vgic_v2_enable(struct kvm_vcpu *vcpu);
 int vgic_v2_probe(struct device_node *vgic_node);
+int vgic_v2_map_resources(struct kvm *kvm);
+int vgic_register_dist_regions(struct kvm *kvm, gpa_t dist_base_address,
+			       enum vgic_type);
 
 #ifdef CONFIG_KVM_ARM_VGIC_V3
 void vgic_v3_irq_change_affinity(struct kvm *kvm, u32 intid, u64 mpidr);
@@ -57,6 +60,8 @@ void vgic_v3_set_vmcr(struct kvm_vcpu *vcpu, struct vgic_vmcr *vmcr);
 void vgic_v3_get_vmcr(struct kvm_vcpu *vcpu, struct vgic_vmcr *vmcr);
 void vgic_v3_enable(struct kvm_vcpu *vcpu);
 int vgic_v3_probe(struct device_node *vgic_node);
+int vgic_v3_map_resources(struct kvm *kvm);
+int vgic_register_redist_regions(struct kvm *kvm, gpa_t dist_base_address);
 #else
 static inline void vgic_v3_irq_change_affinity(struct kvm *kvm, u32 intid,
 					       u64 mpidr)
@@ -107,6 +112,17 @@ static inline void vgic_v3_enable(struct kvm_vcpu *vcpu)
 }
 
 static inline int vgic_v3_probe(struct device_node *vgic_node)
+{
+	return -ENODEV;
+}
+
+static inline int vgic_v3_map_resources(struct kvm *kvm)
+{
+	return -ENODEV;
+}
+
+static inline int vgic_register_redist_regions(struct kvm *kvm,
+					       gpa_t dist_base_address)
 {
 	return -ENODEV;
 }
