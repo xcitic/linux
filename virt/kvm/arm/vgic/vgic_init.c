@@ -54,3 +54,7 @@ int kvm_vgic_addr(struct kvm *kvm, unsigned long type, u64 *addr, bool write)
 	return 0;
 }
 
+int vgic_init(struct kvm *kvm)
+{
+	return 0;
+}
