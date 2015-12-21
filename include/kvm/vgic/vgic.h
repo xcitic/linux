@@ -80,6 +80,7 @@ static inline int kvm_vgic_get_max_vcpus(void)
 /*
  *****************************************************************/
 
+#define VGIC_NR_IRQS_LEGACY     256
 #define VGIC_NR_SGIS		16
 #define VGIC_NR_PPIS		16
 #define VGIC_NR_PRIVATE_IRQS	(VGIC_NR_SGIS + VGIC_NR_PPIS)
@@ -166,6 +167,7 @@ struct vgic_io_device {
 struct vgic_dist {
 	bool			in_kernel;
 	bool			ready;
+	bool			initialized;
 
 	/* vGIC model the kernel emulates for the guest (GICv2 or GICv3) */
 	u32			vgic_model;
@@ -273,7 +275,7 @@ static inline int kvm_vgic_inject_mapped_irq(struct kvm *kvm, int cpuid,
 int kvm_vgic_vcpu_pending_irq(struct kvm_vcpu *vcpu);
 
 #define irqchip_in_kernel(k)	(!!((k)->arch.vgic.in_kernel))
-#define vgic_initialized(k)	(false)
+#define vgic_initialized(k)	((k)->arch.vgic.initialized)
 #define vgic_ready(k)		((k)->arch.vgic.ready)
 #define vgic_valid_spi(k,i)	((k)->arch.vgic.nr_spis + VGIC_NR_PRIVATE_IRQS > i)
 

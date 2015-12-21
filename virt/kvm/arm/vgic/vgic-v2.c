@@ -234,6 +234,11 @@ void vgic_v2_irq_change_affinity(struct kvm *kvm, u32 intid, u8 new_targets)
 	spin_unlock(&irq->irq_lock);
 }
 
+/* not yet implemented */
+void vgic_v2_enable(struct kvm_vcpu *vcpu)
+{
+}
+
 /**
  * vgic_v2_probe - probe for a GICv2 compatible interrupt controller in DT
  * @node:	pointer to the DT node
