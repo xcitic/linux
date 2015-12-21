@@ -65,18 +65,6 @@ static inline bool kvm_vgic_map_is_active(struct kvm_vcpu *vcpu,
 	return false;
 }
 
-/**
- * kvm_vgic_get_max_vcpus - Get the maximum number of VCPUs allowed by HW
- *
- * The host's GIC naturally limits the maximum amount of VCPUs a guest
- * can use.
- */
-static inline int kvm_vgic_get_max_vcpus(void)
-{
-	pr_warn("%s not yet implemented.\n", __func__);
-	return 0;
-}
-
 /*
  *****************************************************************/
 
@@ -257,7 +245,6 @@ void kvm_vgic_vcpu_destroy(struct kvm_vcpu *vcpu);
 int kvm_vgic_map_resources(struct kvm *kvm);
 int kvm_vgic_hyp_init(void);
 
-int kvm_vgic_get_max_vcpus(void);
 int kvm_vgic_addr(struct kvm *kvm, unsigned long type, u64 *addr, bool write);
 
 int kvm_vgic_inject_irq(struct kvm *kvm, int cpuid, unsigned int intid,
@@ -282,5 +269,17 @@ int kvm_vgic_vcpu_pending_irq(struct kvm_vcpu *vcpu);
 bool kvm_vcpu_has_pending_irqs(struct kvm_vcpu *vcpu);
 void kvm_vgic_sync_hwstate(struct kvm_vcpu *vcpu);
 void kvm_vgic_flush_hwstate(struct kvm_vcpu *vcpu);
+
+/**
+ * kvm_vgic_get_max_vcpus - Get the maximum number of VCPUs allowed by HW
+ *
+ * The host's GIC naturally limits the maximum amount of VCPUs a guest
+ * can use.
+ */
+static inline int kvm_vgic_get_max_vcpus(void)
+{
+	return kvm_vgic_global_state.max_gic_vcpus;
+}
+
 
 #endif /* __ASM_ARM_KVM_VGIC_VGIC_H */
