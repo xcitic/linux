@@ -113,6 +113,49 @@ struct vgic_register_region vgic_v2_dist_registers[] = {
 		vgic_mmio_read_nyi, vgic_mmio_write_nyi, 16),
 };
 
+/*
+ * Using kvm_io_bus_* to access GIC registers directly from userspace has
+ * issues, so we provide our own dispatcher function for that purpose here.
+ */
+static int vgic_mmio_access(struct kvm_vcpu *vcpu,
+			    struct vgic_register_region *region, int nr_regions,
+			    bool is_write, int offset, int len, void *val)
+{
+	int i;
+	struct vgic_io_device dev;
+
+	for (i = 0; i < nr_regions; i++) {
+		int reg_size = region[i].len;
+
+		if (!reg_size)
+			reg_size = (region[i].bits_per_irq * 1024) / 8;
+
+		if ((offset < region[i].reg_offset) ||
+		    (offset + len > region[i].reg_offset + reg_size))
+			continue;
+
+		dev.base_addr	= region[i].reg_offset;
+		dev.redist_vcpu	= vcpu;
+
+		if (is_write)
+			return region[i].ops.write(vcpu, &dev.dev,
+						   offset, len, val);
+		else
+			return region[i].ops.read(vcpu, &dev.dev,
+						  offset, len, val);
+	}
+
+	return -ENODEV;
+}
+
+int vgic_v2_dist_access(struct kvm_vcpu *vcpu, bool is_write,
+			int offset, int len, void *val)
+{
+	return vgic_mmio_access(vcpu, vgic_v2_dist_registers,
+				ARRAY_SIZE(vgic_v2_dist_registers),
+				is_write, offset, len, val);
+}
+
 int register_reg_region(struct kvm *kvm, struct kvm_vcpu *vcpu,
 			struct vgic_register_region *reg_desc,
 			struct vgic_io_device *region,
