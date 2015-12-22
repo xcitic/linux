@@ -52,14 +52,15 @@ static inline struct irq_phys_map *kvm_vgic_map_phys_irq(struct kvm_vcpu *vcpu,
 }
 
 static inline int kvm_vgic_unmap_phys_irq(struct kvm_vcpu *vcpu,
-					  struct irq_phys_map *map)
+					  struct irq_phys_map *map,
+					  int virt_irq)
 {
 	pr_warn("%s not yet implemented.\n", __func__);
 	return 0;
 }
 
 static inline bool kvm_vgic_map_is_active(struct kvm_vcpu *vcpu,
-					  struct irq_phys_map *map)
+					  int virt_irq)
 {
 	pr_warn("%s not yet implemented.\n", __func__);
 	return false;
@@ -252,8 +253,7 @@ int kvm_vgic_inject_irq(struct kvm *kvm, int cpuid, unsigned int intid,
 
 
 static inline int kvm_vgic_inject_mapped_irq(struct kvm *kvm, int cpuid,
-					     struct irq_phys_map *map,
-					     bool level)
+					     int virt_irq, bool level)
 {
 	pr_warn("%s not yet implemented.\n", __func__);
 	return 0;
