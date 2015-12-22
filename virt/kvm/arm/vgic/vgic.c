@@ -17,6 +17,9 @@
 #include <linux/kvm.h>
 #include <linux/kvm_host.h>
 #include <linux/list_sort.h>
+#include <linux/irq.h>
+#include <linux/interrupt.h>
+#include <linux/irqdesc.h>
 
 #include "vgic.h"
 
@@ -290,6 +293,83 @@ int kvm_vgic_inject_irq(struct kvm *kvm, int cpuid, unsigned int intid,
 
 	vcpu = kvm_get_vcpu(kvm, cpuid);
 	vgic_update_irq_pending(kvm, vcpu, intid, level);
+
+	return 0;
+}
+
+/**
+ * kvm_vgic_inject_mapped_irq - Inject a hardware mapped IRQ to the vgic
+ * @kvm:     The VM structure pointer
+ * @cpuid:   The CPU for PPIs
+ * @irq_num: The INTID to inject a new state to.
+ * @level:   Edge-triggered:  true:  to trigger the interrupt
+ *			      false: to ignore the call
+ *	     Level-sensitive  true:  raise the input signal
+ *			      false: lower the input signal
+ *
+ * The GIC is not concerned with devices being active-LOW or active-HIGH for
+ * level-sensitive interrupts.  You can think of the level parameter as 1
+ * being HIGH and 0 being LOW and all devices being active-HIGH.
+ */
+int kvm_vgic_inject_mapped_irq(struct kvm *kvm, int cpuid, unsigned int intid,
+			       bool level)
+{
+	struct kvm_vcpu *vcpu;
+	int ret;
+
+	ret = vgic_lazy_init(kvm);
+	if (ret)
+		return ret;
+
+	vcpu = kvm_get_vcpu(kvm, cpuid);
+	vgic_update_irq_pending(kvm, vcpu, intid, level);
+
+	return 0;
+}
+
+struct irq_phys_map *kvm_vgic_map_phys_irq(struct kvm_vcpu *vcpu,
+					   u32 virt_irq, u32 intid)
+{
+	struct vgic_irq *irq = vgic_get_irq(vcpu->kvm, vcpu, virt_irq);
+	struct irq_desc *desc;
+	struct irq_data *data;
+
+	BUG_ON(!irq);
+
+	desc = irq_to_desc(intid);
+	if (!desc) {
+		kvm_err("%s: no interrupt descriptor\n", __func__);
+		return NULL;
+	}
+
+	data = irq_desc_get_irq_data(desc);
+	while (data->parent_data)
+		data = data->parent_data;
+
+	spin_lock(&irq->irq_lock);
+
+	irq->hw = true;
+	irq->hwintid = data->hwirq;
+
+	spin_unlock(&irq->irq_lock);
+
+	return NULL;
+}
+
+int kvm_vgic_unmap_phys_irq(struct kvm_vcpu *vcpu, struct irq_phys_map *map,
+			    u32 intid)
+{
+	struct vgic_irq *irq = vgic_get_irq(vcpu->kvm, vcpu, intid);
+
+	BUG_ON(!irq);
+
+	spin_lock(&irq->irq_lock);
+
+	irq->hw = false;
+	irq->hwintid = 0;
+
+	spin_unlock(&irq->irq_lock);
+
 	return 0;
 }
 
@@ -547,4 +627,16 @@ int kvm_vgic_vcpu_pending_irq(struct kvm_vcpu *vcpu)
 	spin_unlock(&vgic_cpu->ap_list_lock);
 
 	return pending;
+}
+
+bool kvm_vgic_map_is_active(struct kvm_vcpu *vcpu, u32 intid)
+{
+	struct vgic_irq *irq = vgic_get_irq(vcpu->kvm, vcpu, intid);
+	bool map_is_active;
+
+	spin_lock(&irq->irq_lock);
+	map_is_active = irq->hw && irq->active;
+	spin_unlock(&irq->irq_lock);
+
+	return map_is_active;
 }

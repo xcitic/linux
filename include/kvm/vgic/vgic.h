@@ -30,11 +30,12 @@
 #define VGIC_V3_MAX_CPUS	255
 #define VGIC_V2_MAX_CPUS	8
 
-struct irq_phys_map {
-	u32			virt_irq;
-	u32			phys_irq;
-	u32			irq;
-};
+/*
+ * This is not really needed, but we need this type to keep the arch
+ * timer compatible with the old VGIC implementation.
+ * This should be removed upon retiring the old VGIC.
+ */
+struct irq_phys_map {};
 
 #ifdef CONFIG_KVM_ARM_VGIC_V3
 void vgic_v3_dispatch_sgi(struct kvm_vcpu *vcpu, u64 reg);
@@ -44,27 +45,11 @@ static inline void vgic_v3_dispatch_sgi(struct kvm_vcpu *vcpu, u64 reg)
 }
 #endif
 
-static inline struct irq_phys_map *kvm_vgic_map_phys_irq(struct kvm_vcpu *vcpu,
-							 int virt_irq, int irq)
-{
-	pr_warn("%s not yet implemented.\n", __func__);
-	return NULL;
-}
-
-static inline int kvm_vgic_unmap_phys_irq(struct kvm_vcpu *vcpu,
-					  struct irq_phys_map *map,
-					  int virt_irq)
-{
-	pr_warn("%s not yet implemented.\n", __func__);
-	return 0;
-}
-
-static inline bool kvm_vgic_map_is_active(struct kvm_vcpu *vcpu,
-					  int virt_irq)
-{
-	pr_warn("%s not yet implemented.\n", __func__);
-	return false;
-}
+struct irq_phys_map *kvm_vgic_map_phys_irq(struct kvm_vcpu *vcpu,
+					   u32 virt_irq, u32 irq);
+int kvm_vgic_unmap_phys_irq(struct kvm_vcpu *vcpu, struct irq_phys_map *map,
+			    u32 intid);
+bool kvm_vgic_map_is_active(struct kvm_vcpu *vcpu, u32 intid);
 
 /*
  *****************************************************************/
@@ -250,14 +235,8 @@ int kvm_vgic_addr(struct kvm *kvm, unsigned long type, u64 *addr, bool write);
 
 int kvm_vgic_inject_irq(struct kvm *kvm, int cpuid, unsigned int intid,
 			bool level);
-
-
-static inline int kvm_vgic_inject_mapped_irq(struct kvm *kvm, int cpuid,
-					     int virt_irq, bool level)
-{
-	pr_warn("%s not yet implemented.\n", __func__);
-	return 0;
-}
+int kvm_vgic_inject_mapped_irq(struct kvm *kvm, int cpuid, unsigned int intid,
+			       bool level);
 
 int kvm_vgic_vcpu_pending_irq(struct kvm_vcpu *vcpu);
 
