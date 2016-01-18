@@ -82,6 +82,7 @@ Required properties:
 	"allwinner,sun9i-a80-usb-phy-clk" - for usb phy gates + resets on A80
 	"allwinner,sun4i-a10-ve-clk" - for the Video Engine clock
 	"allwinner,sunxi-multi-bus-gates-clk" - for the multi-parent bus gates
+	"allwinner,sun50i-a64-bus-gates-clk" - for the bus gates on A64
 
 Required properties for all clocks:
 - reg : shall be the control register address for the clock.
