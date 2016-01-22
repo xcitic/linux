@@ -724,6 +724,26 @@ static int vgic_mmio_write_v3r_pendbase(struct kvm_vcpu *vcpu,
 	/* TODO: implement */
 	return 0;
 }
+
+static int vgic_mmio_read_v3_idregs(struct kvm_vcpu *vcpu,
+				    struct kvm_io_device *this,
+				    gpa_t addr, int len, void *val)
+{
+	struct vgic_io_device *iodev = container_of(this,
+						    struct vgic_io_device, dev);
+	u32 regnr = (addr - iodev->base_addr);
+	u32 reg = 0;
+
+	switch (regnr + GICD_IDREGS) {
+	case GICD_PIDR2:
+		/* report a GICv3 compliant implementation */
+		reg = 0x3b;
+		break;
+	}
+
+	write_mask32(reg , addr & 3, len, val);
+	return 0;
+}
 #endif
 
 /*
@@ -797,6 +817,8 @@ struct vgic_register_region vgic_v3_dist_registers[] = {
 		vgic_mmio_read_config, vgic_mmio_write_config, 2),
 	REGISTER_DESC_WITH_BITS_PER_IRQ_SHARED(GICD_IGRPMODR,
 		vgic_mmio_read_raz, vgic_mmio_write_wi, 1),
+	REGISTER_DESC_WITH_LENGTH(GICD_IDREGS,
+		vgic_mmio_read_v3_idregs, vgic_mmio_write_wi, 48),
 };
 
 struct vgic_register_region vgic_v3_redist_registers[] = {
@@ -810,6 +832,8 @@ struct vgic_register_region vgic_v3_redist_registers[] = {
 		vgic_mmio_read_v3r_propbase, vgic_mmio_write_v3r_propbase, 8),
 	REGISTER_DESC_WITH_LENGTH(GICR_PENDBASER,
 		vgic_mmio_read_v3r_pendbase, vgic_mmio_write_v3r_pendbase, 8),
+	REGISTER_DESC_WITH_LENGTH(GICR_IDREGS,
+		vgic_mmio_read_v3_idregs, vgic_mmio_write_wi, 48),
 };
 
 struct vgic_register_region vgic_v3_private_registers[] = {
