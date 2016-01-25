@@ -632,6 +632,51 @@ static int vgic_mmio_write_v3_misc(struct kvm_vcpu *vcpu,
 	return 0;
 }
 
+static int vgic_mmio_read_irouter(struct kvm_vcpu *vcpu,
+				  struct kvm_io_device *this,
+				  gpa_t addr, int len, void *val)
+{
+	struct vgic_io_device *iodev = container_of(this,
+						    struct vgic_io_device, dev);
+	int intid = (addr - iodev->base_addr) / 8;
+	struct vgic_irq *irq = vgic_get_irq(vcpu->kvm, NULL, intid);
+	u64 mpidr;
+
+	if (!irq) {
+		memset(val, 0, len);
+		return 0;
+	}
+
+	BUG_ON(!irq->target_vcpu);
+
+	/* TODO: actually we have to maintain the originally written value */
+	mpidr = kvm_vcpu_get_mpidr_aff(irq->target_vcpu);
+
+	write_mask64(mpidr, addr & 7, len, val);
+	return 0;
+}
+
+static int vgic_mmio_write_irouter(struct kvm_vcpu *vcpu,
+				   struct kvm_io_device *this,
+				   gpa_t addr, int len, const void *val)
+{
+	struct vgic_io_device *iodev = container_of(this,
+						    struct vgic_io_device, dev);
+	int intid = (addr - iodev->base_addr) / 8;
+	struct vgic_irq *irq = vgic_get_irq(vcpu->kvm, NULL, intid);
+	u64 mpidr;
+
+	if (!irq)
+		return 0;
+
+	mpidr = kvm_vcpu_get_mpidr_aff(irq->target_vcpu);
+	mpidr = mask64(mpidr, addr & 7, len, val);
+
+	vgic_v3_irq_change_affinity(vcpu->kvm, intid, mpidr);
+
+	return 0;
+}
+
 /*
  * We use a compressed version of the MPIDR (all 32 bits in one 32-bit word)
  * when we store the target MPIDR written by the guest.
@@ -817,6 +862,8 @@ struct vgic_register_region vgic_v3_dist_registers[] = {
 		vgic_mmio_read_config, vgic_mmio_write_config, 2),
 	REGISTER_DESC_WITH_BITS_PER_IRQ_SHARED(GICD_IGRPMODR,
 		vgic_mmio_read_raz, vgic_mmio_write_wi, 1),
+	REGISTER_DESC_WITH_BITS_PER_IRQ_SHARED(GICD_IROUTER,
+		vgic_mmio_read_irouter, vgic_mmio_write_irouter, 64),
 	REGISTER_DESC_WITH_LENGTH(GICD_IDREGS,
 		vgic_mmio_read_v3_idregs, vgic_mmio_write_wi, 48),
 };
