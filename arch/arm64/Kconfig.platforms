@@ -72,6 +72,11 @@ config ARCH_SEATTLE
 config ARCH_SHMOBILE
 	bool
 
+config ARCH_SUNXI
+	bool "Allwinner sunxi 64-bit SoC Family"
+	help
+	  This enables support for Allwinner sunxi based SoCs like the A64.
+
 config ARCH_RENESAS
 	bool "Renesas SoC Platforms"
 	select ARCH_SHMOBILE
