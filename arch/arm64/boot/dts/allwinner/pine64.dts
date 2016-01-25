@@ -42,6 +42,10 @@
 
 /dts-v1/;
 
+/memreserve/ 0x45000000 0x00200000;
+/memreserve/ 0x41010000 0x00010800;
+/memreserve/ 0x40100000 0x00006000;
+
 #include "pine64_common.dtsi"
 
 / {
