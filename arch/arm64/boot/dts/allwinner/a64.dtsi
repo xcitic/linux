@@ -213,7 +213,7 @@
 			#clock-cells = <0>;
 			compatible = "allwinner,sun4i-a10-apb1-clk";
 			reg = <0x01c20058 0x4>;
-			clocks = <&osc32k>, <&osc24M>, <&pll6 0>, <&pll6 0>;
+			clocks = <&osc32k>, <&osc24M>, <&pll6 1>, <&pll6 1>;
 			clock-output-names = "apb2";
 		};
 
