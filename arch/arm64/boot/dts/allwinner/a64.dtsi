@@ -468,6 +468,18 @@
 			reg = <0x01c202c0 0xc>;
 		};
 
+		apb1_rst: reset@01c202d0 {
+			#reset-cells = <1>;
+			compatible = "allwinner,sun6i-a31-clock-reset";
+			reg = <0x01c202d0 0x4>;
+		};
+
+		apb2_rst: reset@01c202d8 {
+			#reset-cells = <1>;
+			compatible = "allwinner,sun6i-a31-clock-reset";
+			reg = <0x01c202d8 0x4>;
+		};
+
 		uart0: serial@01c28000 {
 			compatible = "snps,dw-apb-uart";
 			reg = <0x01c28000 0x400>;
@@ -475,6 +487,8 @@
 			reg-shift = <2>;
 			reg-io-width = <4>;
 			clocks = <&bus_gates 112>;
+			resets = <&apb2_rst 16>;
+			reset-names = "apb2";
 			status = "disabled";
 		};
 
@@ -485,6 +499,8 @@
 			reg-shift = <2>;
 			reg-io-width = <4>;
 			clocks = <&bus_gates 113>;
+			resets = <&apb2_rst 17>;
+			reset-names = "apb2";
 			status = "disabled";
 		};
 
@@ -495,6 +511,8 @@
 			reg-shift = <2>;
 			reg-io-width = <4>;
 			clocks = <&bus_gates 114>;
+			resets = <&apb2_rst 18>;
+			reset-names = "apb2";
 			status = "disabled";
 		};
 
@@ -505,6 +523,8 @@
 			reg-shift = <2>;
 			reg-io-width = <4>;
 			clocks = <&bus_gates 115>;
+			resets = <&apb2_rst 19>;
+			reset-names = "apb2";
 			status = "disabled";
 		};
 
@@ -515,6 +535,8 @@
 			reg-shift = <2>;
 			reg-io-width = <4>;
 			clocks = <&bus_gates 116>;
+			resets = <&apb2_rst 20>;
+			reset-names = "apb2";
 			status = "disabled";
 		};
 
