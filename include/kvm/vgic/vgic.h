@@ -36,7 +36,13 @@ struct irq_phys_map {
 	u32			irq;
 };
 
-static inline void vgic_v3_dispatch_sgi(struct kvm_vcpu *vcpu, u64 reg) { }
+#ifdef CONFIG_KVM_ARM_VGIC_V3
+void vgic_v3_dispatch_sgi(struct kvm_vcpu *vcpu, u64 reg);
+#else
+static inline void vgic_v3_dispatch_sgi(struct kvm_vcpu *vcpu, u64 reg)
+{
+}
+#endif
 
 static inline struct irq_phys_map *kvm_vgic_map_phys_irq(struct kvm_vcpu *vcpu,
 							 int virt_irq, int irq)
