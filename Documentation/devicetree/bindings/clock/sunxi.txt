@@ -87,6 +87,7 @@ Required properties:
 	"allwinner,sun9i-a80-usb-phy-clk" - for usb phy gates + resets on A80
 	"allwinner,sun4i-a10-ve-clk" - for the Video Engine clock
 	"allwinner,sun6i-a31-display-clk" - for the display clocks
+	"allwinner,sunxi-multi-bus-gates-clk" - for the multi-parent bus gates
 
 Required properties for all clocks:
 - reg : shall be the control register address for the clock.
@@ -126,6 +127,11 @@ refer to the index of the output.
 For "allwinner,sun6i-a31-pll6-clk", there are 2 outputs. The first output
 is the normal PLL6 output, or "pll6". The second output is rate doubled
 PLL6, or "pll6x2".
+
+The "allwinner,sunxi-multi-bus-gates-clk" holds the actual clocks in
+child nodes, where each one specifies the parent clock that the particular
+gates are depending from. The child nodes each follow the common clock
+binding as described in this document.
 
 The "allwinner,*-mmc-clk" clocks have three different outputs: the
 main clock, with the ID 0, and the output and sample clocks, with the
