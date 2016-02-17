@@ -148,7 +148,7 @@
 
 		pll6: pll6_clk@01c20028 {
 			#clock-cells = <0>;
-			compatible = "allwinner,sun6i-a31-pll6-clk";
+			compatible = "allwinner,sun6i-a31-pll-clk";
 			reg = <0x01c20028 0x4>;
 			clocks = <&osc24M>;
 			clock-output-names = "pll6";
@@ -174,7 +174,7 @@
 
 		pll8: pll8_clk@01c2002c {
 			#clock-cells = <0>;
-			compatible = "allwinner,sun6i-a31-pll6-clk";
+			compatible = "allwinner,sun6i-a31-pll-clk";
 			reg = <0x01c2002c 0x4>;
 			clocks = <&osc24M>;
 			clock-output-names = "pll8";

@@ -248,6 +248,30 @@ static void sun6i_a31_get_pll6_factors(struct factors_request *req)
 	req->n = DIV_ROUND_UP(div, (req->k + 1)) - 1;
 }
 
+static void sun6i_a31_get_pll68_factors(struct factors_request *req)
+{
+	u8 div;
+
+	/* Normalize value to a parent_rate multiple (24M) */
+	div = req->rate / (req->parent_rate / 2);
+	req->rate = (req->parent_rate / 2) * div;
+
+	req->k = div / 32;
+	if (req->k > 3)
+		req->k = 3;
+
+	req->n = DIV_ROUND_UP(div, (req->k + 1)) - 1;
+}
+
+static void sun6i_a31_pll68_recalc(struct factors_request *req)
+{
+	req->rate = req->parent_rate;
+
+	req->rate *= req->n + 1;
+	req->rate *= req->k + 1;
+	req->rate /= 2;
+}
+
 /**
  * sun5i_a13_get_ahb_factors() - calculates m, p factors for AHB
  * AHB rate is calculated as follows
@@ -538,6 +562,13 @@ static const struct factors_data sun6i_a31_pll6_data __initconst = {
 	.table = &sun6i_a31_pll6_config,
 	.getter = sun6i_a31_get_pll6_factors,
 	.name = "pll6x2",
+};
+
+static const struct factors_data sun6i_a31_pll68_data __initconst = {
+	.enable = 31,
+	.table = &sun6i_a31_pll6_config,
+	.getter = sun6i_a31_get_pll68_factors,
+	.recalc = sun6i_a31_pll68_recalc,
 };
 
 static const struct factors_data sun5i_a13_ahb_data __initconst = {
@@ -1076,3 +1107,10 @@ static void __init sun6i_pll6_clk_setup(struct device_node *node)
 }
 CLK_OF_DECLARE(sun6i_pll6, "allwinner,sun6i-a31-pll6-clk",
 	       sun6i_pll6_clk_setup);
+
+static void __init sun6i_pll68_clk_setup(struct device_node *node)
+{
+	sunxi_factors_clk_setup(node, &sun6i_a31_pll68_data);
+}
+CLK_OF_DECLARE(sun6i_pll68, "allwinner,sun6i-a31-pll-clk",
+	       sun6i_pll68_clk_setup);
