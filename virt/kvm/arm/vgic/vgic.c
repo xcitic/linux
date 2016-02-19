@@ -207,6 +207,62 @@ retry:
 	}
 }
 
+int vgic_queue_irq(struct kvm *kvm, struct kvm_vcpu *vcpu, u32 intid,
+		   bool enable, bool make_pending, u8 sgi_source_mask)
+{
+	struct vgic_irq *irq = vgic_get_irq(kvm, vcpu, intid);
+	struct kvm_vcpu *target_vcpu;
+	bool queue, injected = false;
+
+retry:
+	spin_lock(&irq->irq_lock);
+
+	if (enable)
+		irq->enabled = true;
+
+	if (make_pending) {
+		irq->pending = true;
+		if (irq->config == VGIC_CONFIG_LEVEL)
+			irq->soft_pending = true;
+	}
+
+	queue = irq->enabled && irq->pending;
+
+	if (intid < VGIC_NR_SGIS && sgi_source_mask)
+		irq->source |= sgi_source_mask;
+
+	target_vcpu = vgic_target_oracle(irq);
+
+	spin_unlock(&irq->irq_lock);
+
+	if (!queue)
+		return 0;
+
+	spin_lock(&target_vcpu->arch.vgic_cpu.ap_list_lock);
+	spin_lock(&irq->irq_lock);
+
+	if (!irq->vcpu &&			/* not yet queued */
+	    irq->target_vcpu == target_vcpu &&	/* still the right VCPU */
+	    irq->enabled && irq->pending) {	/* ready to be injected */
+		irq->vcpu = target_vcpu;
+		list_add_tail(&irq->ap_list,
+			      &target_vcpu->arch.vgic_cpu.ap_list_head);
+	}
+
+	if (irq->vcpu)
+		injected = true;
+
+	spin_unlock(&irq->irq_lock);
+	spin_unlock(&target_vcpu->arch.vgic_cpu.ap_list_lock);
+
+	if (!injected)
+		goto retry;
+
+	kvm_vcpu_kick(target_vcpu);
+
+	return 0;
+}
+
 /**
  * kvm_vgic_inject_irq - Inject an IRQ from a device to the vgic
  * @kvm:     The VM structure pointer
@@ -241,7 +297,7 @@ int kvm_vgic_inject_irq(struct kvm *kvm, int cpuid, unsigned int intid,
  * active, vcpu and target_vcpu), compute the next vcpu this should be
  * given to. Return NULL if this shouldn't be injected at all.
  */
-static struct kvm_vcpu *vgic_target_oracle(struct vgic_irq *irq)
+struct kvm_vcpu *vgic_target_oracle(struct vgic_irq *irq)
 {
 	/* If the interrupt is active, it must stay on the current vcpu */
 	if (irq->active)

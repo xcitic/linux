@@ -18,6 +18,9 @@
 
 struct vgic_irq *vgic_get_irq(struct kvm *kvm, struct kvm_vcpu *vcpu,
 			      u32 intid);
+struct kvm_vcpu *vgic_target_oracle(struct vgic_irq *irq);
+int vgic_queue_irq(struct kvm *kvm, struct kvm_vcpu *vcpu, u32 intid,
+		   bool enable, bool make_pending, u8 sgi_source_mask);
 
 void vgic_v2_irq_change_affinity(struct kvm *kvm, u32 intid, u8 target);
 void vgic_v2_process_maintenance(struct kvm_vcpu *vcpu);
