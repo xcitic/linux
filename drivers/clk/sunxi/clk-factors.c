@@ -202,7 +202,8 @@ struct clk *sunxi_factors_register(struct device_node *node,
 	if (data->name)
 		clk_name = data->name;
 	else
-		of_property_read_string(node, "clock-output-names", &clk_name);
+		of_property_read_string_index(node, "clock-output-names",
+					      data->name_idx, &clk_name);
 
 	factors = kzalloc(sizeof(struct clk_factors), GFP_KERNEL);
 	if (!factors)

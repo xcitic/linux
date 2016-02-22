@@ -36,6 +36,7 @@ struct factors_data {
 	void (*getter)(struct factors_request *req);
 	void (*recalc)(struct factors_request *req);
 	const char *name;
+	int name_idx;
 };
 
 struct clk_factors {

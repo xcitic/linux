@@ -530,14 +530,14 @@ static const struct factors_data sun4i_pll6_data __initconst = {
 	.enable = 31,
 	.table = &sun4i_pll5_config,
 	.getter = sun4i_get_pll5_factors,
-	.name = "pll6",
+	.name_idx = 2,
 };
 
 static const struct factors_data sun6i_a31_pll6_data __initconst = {
 	.enable = 31,
 	.table = &sun6i_a31_pll6_config,
 	.getter = sun6i_a31_get_pll6_factors,
-	.name = "pll6x2",
+	.name_idx = 1,
 };
 
 static const struct factors_data sun5i_a13_ahb_data __initconst = {
