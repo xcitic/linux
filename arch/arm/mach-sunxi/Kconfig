@@ -46,4 +46,11 @@ config MACH_SUN9I
 	default ARCH_SUNXI
 	select ARM_GIC
 
+config MACH_SUN50I
+	bool "Allwinner A64 (sun50i) SoCs support"
+	default ARCH_SUNXI
+	select ARM_GIC
+	select HAVE_ARM_ARCH_TIMER
+	select PINCTRL_SUN50I_A64
+
 endif
