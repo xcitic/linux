@@ -78,3 +78,15 @@
 	pinctrl-0 = <&i2c1_pins>;
 	status = "okay";
 };
+
+&usbphy {
+	status = "okay";
+};
+
+&ohci0 {
+	status = "okay";
+};
+
+&ehci0 {
+	status = "okay";
+};

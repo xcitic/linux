@@ -333,6 +333,16 @@
 			clocks = <&mii_phy_tx_clk>, <&emac_int_tx_clk>;
 			clock-output-names = "emac_tx";
 		};
+
+		usb_clk: clk@01c200cc {
+			#clock-cells = <1>;
+			#reset-cells = <1>;
+			compatible = "allwinner,sun8i-a23-usb-clk";
+			reg = <0x01c200cc 0x4>;
+			clocks = <&osc24M>;
+			clock-output-names = "usb_phy0", "usb_phy1", "usb_hsic",
+					     "usb_hsic_12M", "usb_ohci0";
+		};
 	};
 
 	soc {
@@ -666,6 +676,43 @@
 			status = "disabled";
 			#address-cells = <1>;
 			#size-cells = <0>;
+		};
+
+		usbphy: phy@1c1b810 {
+			compatible = "allwinner,sun50i-a64-usb-phy",
+				     "allwinner,sun8i-a33-usb-phy";
+			reg = <0x01c1b810 0x14>,
+			      <0x01c1b800 0x4>;
+			reg-names = "phy_ctrl",
+				    "pmu1";
+			clocks = <&usb_clk 8>, <&usb_clk 9>;
+			clock-names = "usb0_phy", "usb1_phy";
+			resets = <&usb_clk 0>, <&usb_clk 1>;
+			reset-names = "usb0_reset", "usb1_reset";
+			status = "disabled";
+			#phy-cells = <1>;
+		};
+
+		ehci0: usb@01c1b000 {
+			compatible = "allwinner,sun8i-a23-ehci", "generic-ehci";
+			reg = <0x01c1b000 0x100>;
+			interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&bus_gates 25>, <&bus_gates 29>;
+			resets = <&ahb_rst 25>, <&ahb_rst 29>;
+			phys = <&usbphy 1>;
+			phy-names = "usb";
+			status = "disabled";
+		};
+
+		ohci0: usb@01c1b400 {
+			compatible = "allwinner,sun8i-a23-ohci", "generic-ohci";
+			reg = <0x01c1b400 0x100>;
+			interrupts = <GIC_SPI 75 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&bus_gates 29>, <&bus_gates 25>, <&usb_clk 16>;
+			resets = <&ahb_rst 29>, <&ahb_rst 25>;
+			phys = <&usbphy 1>;
+			phy-names = "usb";
+			status = "disabled";
 		};
 	};
 };
