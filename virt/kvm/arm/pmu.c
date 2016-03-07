@@ -476,7 +476,7 @@ int kvm_arm_pmu_v3_set_attr(struct kvm_vcpu *vcpu, struct kvm_device_attr *attr)
 		 * the interrupt number is the same for all vcpus, while as an
 		 * SPI it must be a separate number per vcpu.
 		 */
-		if (irq < VGIC_NR_SGIS || irq >= vcpu->kvm->arch.vgic.nr_irqs ||
+		if (irq < VGIC_NR_SGIS || !vgic_valid_spi(vcpu->kvm, irq) ||
 		    !irq_is_valid(vcpu->kvm, irq, irq < VGIC_NR_PRIVATE_IRQS))
 			return -EINVAL;
 

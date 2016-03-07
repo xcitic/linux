@@ -356,6 +356,7 @@ bool kvm_vgic_map_is_active(struct kvm_vcpu *vcpu, struct irq_phys_map *map);
 #define irqchip_in_kernel(k)	(!!((k)->arch.vgic.in_kernel))
 #define vgic_initialized(k)	(!!((k)->arch.vgic.nr_cpus))
 #define vgic_ready(k)		((k)->arch.vgic.ready)
+#define vgic_valid_spi(k,i)	((k)->arch.vgic.nr_irqs > i)
 
 int vgic_v2_probe(struct device_node *vgic_node,
 		  const struct vgic_ops **ops,
