@@ -4,7 +4,6 @@ menuconfig ARCH_SUNXI
 	select ARCH_REQUIRE_GPIOLIB
 	select ARCH_HAS_RESET_CONTROLLER
 	select CLKSRC_MMIO
-	select GENERIC_IRQ_CHIP
 	select PINCTRL
 	select SUN4I_TIMER
 	select RESET_CONTROLLER
@@ -14,11 +13,13 @@ if ARCH_SUNXI
 config MACH_SUN4I
 	bool "Allwinner A10 (sun4i) SoCs support"
 	default ARCH_SUNXI
+	select SUN4I_IRQCHIP
 
 config MACH_SUN5I
 	bool "Allwinner A10s / A13 (sun5i) SoCs support"
 	default ARCH_SUNXI
 	select SUN5I_HSTIMER
+	select SUN4I_IRQCHIP
 
 config MACH_SUN6I
 	bool "Allwinner A31 (sun6i) SoCs support"

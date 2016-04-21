@@ -165,6 +165,14 @@ config ST_IRQCHIP
 	help
 	  Enables SysCfg Controlled IRQs on STi based platforms.
 
+config SUN4I_IRQCHIP
+	bool
+
+config SUNXI_NMI
+	bool "Allwinner SoC NMI controller"
+	default ARCH_SUNXI
+	select GENERIC_IRQ_CHIP
+
 config TANGO_IRQ
 	bool
 	select IRQ_DOMAIN
