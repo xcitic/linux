@@ -96,6 +96,9 @@ static void __init sunxi_gmac_clk_setup(struct device_node *node,
 	mux->table = sun7i_a20_gmac_mux_table;
 	mux->lock = &gmac_lock;
 
+	if (enable_bit != -1)
+		writel(readl(reg) | BIT(enable_bit), reg);
+
 	clk = clk_register_composite(NULL, clk_name,
 			parents, SUN7I_A20_GMAC_PARENTS,
 			&mux->hw, &clk_mux_ops,
