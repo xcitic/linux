@@ -57,7 +57,8 @@ static u32 sun7i_a20_gmac_mux_table[SUN7I_A20_GMAC_PARENTS] = {
 	0x02, /* Select gmac_int_tx_clk */
 };
 
-static void __init sun7i_a20_gmac_clk_setup(struct device_node *node)
+static void __init sunxi_gmac_clk_setup(struct device_node *node,
+					int enable_bit)
 {
 	struct clk *clk;
 	struct clk_mux *mux;
@@ -116,5 +117,18 @@ free_gate:
 free_mux:
 	kfree(mux);
 }
+
+static void __init sun7i_a20_gmac_clk_setup(struct device_node *node)
+{
+	sunxi_gmac_clk_setup(node, -1);
+}
+
+static void __init sun50i_a64_emac_clk_setup(struct device_node *node)
+{
+	sunxi_gmac_clk_setup(node, 13);
+}
+
 CLK_OF_DECLARE(sun7i_a20_gmac, "allwinner,sun7i-a20-gmac-clk",
 		sun7i_a20_gmac_clk_setup);
+CLK_OF_DECLARE(sun50i_a64_emac, "allwinner,sun50i-a64-emac-clk",
+		sun50i_a64_emac_clk_setup);
