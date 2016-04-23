@@ -1318,12 +1318,14 @@ static int sun8i_emac_ioctl(struct net_device *ndev, struct ifreq *rq, int cmd)
 	return phy_mii_ioctl(phydev, rq, cmd);
 }
 
+#ifdef CONFIG_NET_POLL_CONTROLLER
 static void sun8i_emac_poll_controller(struct net_device *ndev)
 {
 	struct sun8i_emac_priv *priv = netdev_priv(ndev);
 
 	dev_info(priv->dev, "%s\n", __func__);
 }
+#endif
 
 static int sun8i_emac_check_if_running(struct net_device *ndev)
 {
