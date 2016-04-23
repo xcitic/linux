@@ -1281,8 +1281,8 @@ static void sun8i_emac_tx_timeout(struct net_device *ndev)
 
 	for (i = 0; i < nbdesc_tx; i++) {
 		ddesc = priv->dd_tx + i;
-		dev_info(priv->dev, "desc%02d %x %x %x:\n", i, ddesc->status,
-			 ddesc->st, priv->dd_tx_phy + i * 16);
+		dev_info(priv->dev, "desc%02d %x %x %pad:\n", i, ddesc->status,
+			 ddesc->st, &priv->dd_tx_phy);
 		if (priv->tx_sk[i] && (ddesc->st & BIT(30)))
 			dev_kfree_skb_any(priv->tx_sk[i]);
 		ddesc->st = 0;
