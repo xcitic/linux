@@ -203,13 +203,14 @@
 *  Bits 26-31: not used
 * Since we only ever set buf1 size, we can simply store it directly.
 */
-#define SDXC_IDMAC_DES0_DIC	BIT(1)  /* disable interrupt on completion */
-#define SDXC_IDMAC_DES0_LD	BIT(2)  /* last descriptor */
-#define SDXC_IDMAC_DES0_FD	BIT(3)  /* first descriptor */
-#define SDXC_IDMAC_DES0_CH	BIT(4)  /* chain mode */
-#define SDXC_IDMAC_DES0_ER	BIT(5)  /* end of ring */
-#define SDXC_IDMAC_DES0_CES	BIT(30) /* card error summary */
-#define SDXC_IDMAC_DES0_OWN	BIT(31) /* 1-idma owns it, 0-host owns it */
+#define LE32_BIT(n) (cpu_to_le32(BIT(n)))
+#define SDXC_IDMAC_DES0_DIC	LE32_BIT(1) /* disable interrupt on completion*/
+#define SDXC_IDMAC_DES0_LD	LE32_BIT(2)  /* last descriptor */
+#define SDXC_IDMAC_DES0_FD	LE32_BIT(3)  /* first descriptor */
+#define SDXC_IDMAC_DES0_CH	LE32_BIT(4)  /* chain mode */
+#define SDXC_IDMAC_DES0_ER	LE32_BIT(5)  /* end of ring */
+#define SDXC_IDMAC_DES0_CES	LE32_BIT(30) /* card error summary */
+#define SDXC_IDMAC_DES0_OWN	LE32_BIT(31) /* 1-idma owns it, 0-host owns it*/
 
 #define SDXC_CLK_400K		0
 #define SDXC_CLK_25M		1
@@ -331,11 +332,11 @@ static void sunxi_mmc_init_idma_des(struct sunxi_mmc_host *host,
 		if (data->sg[i].length == max_len)
 			pdes[i].buf_size = 0; /* 0 == max_len */
 		else
-			pdes[i].buf_size = data->sg[i].length;
+			pdes[i].buf_size = cpu_to_le32(data->sg[i].length);
 
 		next_desc += sizeof(struct sunxi_idma_des);
-		pdes[i].buf_addr_ptr1 = sg_dma_address(&data->sg[i]);
-		pdes[i].buf_addr_ptr2 = (u32)next_desc;
+		pdes[i].buf_addr_ptr1 = cpu_to_le32(sg_dma_address(&data->sg[i]));
+		pdes[i].buf_addr_ptr2 = cpu_to_le32(next_desc);
 	}
 
 	pdes[0].config |= SDXC_IDMAC_DES0_FD;
