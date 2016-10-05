@@ -1,4 +1,25 @@
-        Linux kernel release 4.x <http://kernel.org/>
+        TODO 
+        
+       - Change defconfig in arch/arm64/configs use Radxa defconfig for LVDS as basis. 
+       
+       
+     Building the Kernel From MAINLINE LINUX (Still has issues safer alternative is BSP kernel version from Longsheep) 
+     
+     git clone --depth 1 --branch a64-v4 --single-branch https://github.com/xcitic/linux.git linux-a64
+      
+      make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- compx_lvds_defconfig
+       make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- clean
+        make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j4 Image
+        make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j4 modules
+        make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j4 dtbs
+       
+       
+     BUILDING THE KERNEL FROM BSD Longsheep build
+     
+     - Change defconfig in arch/arm64/configs/sun50iw1p1smp_linux_defconfig use Radxa defconfig for LVDS as basis. 
+       
+       
+       Linux kernel release 4.x <http://kernel.org/>
 
 These are the release notes for Linux version 4.  Read them carefully,
 as they tell you what this is all about, explain how to install the
